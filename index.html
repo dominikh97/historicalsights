@@ -10,12 +10,19 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 </head>
 <body>
+    <!-- Search Bar -->
+    <div id="search-container">
+        <input type="text" id="search-input" placeholder="Search for a location..." />
+        <button id="search-btn">Search</button>
+    </div>
+
     <h1>Historical Sights Map</h1>
     <!-- Map container -->
     <div id="map"></div>
 
-    <!-- Link to external JavaScript file (map.js) -->
+    <!-- Link to external JavaScript files -->
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="map.js"></script>
+    <script src="search.js"></script>
 </body>
 </html>
