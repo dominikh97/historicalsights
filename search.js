@@ -8,14 +8,15 @@ function searchLocation(query) {
         q: query, // User's search query
         format: "json",
         addressdetails: 1,
-        limit: 1 // Get only the top result
+        limit: 5, // Get up to 5 suggestions
+        tag: "historic" // Ensure it only searches places with historic=*
     });
 
     fetch(`${nominatimUrl}?${params}`)
         .then(response => response.json())
         .then(data => {
             if (data.length === 0) {
-                alert("Location not found. Please refine your search.");
+                alert("No historic places found. Please refine your search.");
                 return;
             }
 
@@ -85,6 +86,54 @@ function fetchHistoricalSights(lat, lon) {
         });
 }
 
+// Function to get suggestions from Nominatim as the user types
+function getSuggestions(query) {
+    const nominatimUrl = "https://nominatim.openstreetmap.org/search";
+    const params = new URLSearchParams({
+        q: query,
+        format: "json",
+        addressdetails: 1,
+        limit: 5,  // Limit to 5 suggestions
+        tag: "historic" // Ensure suggestions are only for historic places
+    });
+
+    fetch(`${nominatimUrl}?${params}`)
+        .then(response => response.json())
+        .then(data => {
+            const suggestions = data.map(place => place.display_name);
+            showSuggestions(suggestions);
+        })
+        .catch(err => {
+            console.error("Error fetching suggestions:", err);
+        });
+}
+
+// Display the suggestions in the autocomplete dropdown
+function showSuggestions(suggestions) {
+    const suggestionBox = document.getElementById('suggestions');
+    suggestionBox.innerHTML = ''; // Clear previous suggestions
+
+    if (suggestions.length === 0) {
+        suggestionBox.style.display = 'none'; // Hide if no suggestions
+        return;
+    }
+
+    // Show suggestion list
+    suggestionBox.style.display = 'block';
+
+    suggestions.forEach(suggestion => {
+        const div = document.createElement('div');
+        div.classList.add('suggestion-item');
+        div.textContent = suggestion;
+        div.onclick = function () {
+            document.getElementById('search-input').value = suggestion;
+            suggestionBox.style.display = 'none'; // Hide suggestions after selection
+            searchLocation(suggestion); // Trigger the search for the selected suggestion
+        };
+        suggestionBox.appendChild(div);
+    });
+}
+
 // Event listener for the search button
 document.getElementById('search-btn').addEventListener('click', () => {
     const query = document.getElementById('search-input').value;
@@ -95,9 +144,25 @@ document.getElementById('search-btn').addEventListener('click', () => {
     }
 });
 
-// Optional: Add an event listener for "Enter" key to trigger search
+// Add an event listener for "Enter" key to trigger search
 document.getElementById('search-input').addEventListener('keypress', function (e) {
     if (e.key === "Enter") {
         document.getElementById('search-btn').click();
+    }
+});
+
+// Add event listener for input field to trigger suggestions on typing
+document.getElementById('search-input').addEventListener('input', function () {
+    const query = document.getElementById('search-input').value;
+    if (query.length >= 3) { // Trigger suggestions after 3 characters
+        getSuggestions(query);
+    }
+});
+
+// Optional: Close suggestion box if user clicks outside
+document.addEventListener('click', function (e) {
+    const suggestionBox = document.getElementById('suggestions');
+    if (!suggestionBox.contains(e.target) && e.target !== document.getElementById('search-input')) {
+        suggestionBox.style.display = 'none';
     }
 });

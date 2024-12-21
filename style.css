@@ -56,3 +56,28 @@ h1 {
 #search-btn:hover {
     background-color: #45a049;
 }
+
+/* Style the suggestion dropdown */
+#suggestions {
+    position: absolute;
+    top: 50px; /* Just below the search input */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 300px;
+    border: 1px solid #ccc;
+    background-color: white;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 999;
+    display: none;
+}
+
+/* Style individual suggestion items */
+.suggestion-item {
+    padding: 8px;
+    cursor: pointer;
+}
+
+.suggestion-item:hover {
+    background-color: #f0f0f0;
+}
