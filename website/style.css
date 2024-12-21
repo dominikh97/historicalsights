@@ -85,3 +85,41 @@ footer a {
 footer a:hover {
     color: #0056b3;
 }
+
+/* Style for the search bar */
+#search-container {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 5px 10px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+}
+
+#search-box {
+    width: 300px;
+    padding: 5px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+#search-button {
+    padding: 5px 15px;
+    margin-left: 10px;
+    border: none;
+    background-color: #0078FF;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+#search-button:hover {
+    background-color: #0056b3;
+}
