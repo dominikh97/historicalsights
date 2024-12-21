@@ -1,4 +1,4 @@
-# Historical Sights
+# Historical Sights ALPHA
 
 This repository hosts a static website about historical sights, showcasing various landmarks and their significance.
 
