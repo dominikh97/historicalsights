@@ -1,15 +1,23 @@
+// Initialize the map
+const map = L.map('map').setView([0, 0], 2); // Default view to show the whole world
+
+// Add OpenStreetMap tiles
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '© OpenStreetMap contributors'
+}).addTo(map);
+
 // Overpass API endpoint
 const overpassUrl = "https://overpass-api.de/api/interpreter";
 
 // Define the Overpass query
-// This example fetches all nodes with "historic" tag globally
 const query = `
     [out:json][timeout:25];
     node["historic"]({{-90,-180,90,180}});
     out body;
 `;
 
-// Fetch the data from Overpass API
+// Fetch data from Overpass API
 fetch(overpassUrl, {
     method: "POST",
     body: query,
