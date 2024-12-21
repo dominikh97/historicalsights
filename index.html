@@ -3,85 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Historical Sights</title>
+    <title>Historical Sights Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f9;
-            color: #333;
-        }
-        header {
-            background: #35424a;
-            color: #fff;
-            padding: 1rem 0;
-            text-align: center;
-        }
-        nav {
-            margin: 0;
-            padding: 0;
-            background: #444;
-            overflow: hidden;
-        }
-        nav a {
-            color: #fff;
-            text-decoration: none;
-            padding: 1rem;
-            display: inline-block;
-        }
-        nav a:hover {
-            background: #575757;
-        }
-        .container {
-            max-width: 900px;
-            margin: 2rem auto;
-            padding: 1rem;
-            background: #fff;
+        #map {
+            height: 500px;
+            width: 100%;
+            margin-top: 1rem;
             border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
-        footer {
-            text-align: center;
-            padding: 1rem;
-            background: #35424a;
-            color: #fff;
-            margin-top: 2rem;
+        #search-bar {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 100%;
         }
     </style>
 </head>
 <body>
     <header>
-        <h1>Welcome to Historical Sights</h1>
-        <p>Discover the world's most fascinating landmarks</p>
+        <h1>Search Historical Sights</h1>
     </header>
-    <nav>
-        <a href="#about">About</a>
-        <a href="#sights">Sights</a>
-        <a href="#contact">Contact</a>
-    </nav>
     <div class="container">
-        <section id="about">
-            <h2>About This Site</h2>
-            <p>This website showcases some of the most iconic historical landmarks around the world. Learn about their history, significance, and why they are worth visiting.</p>
-        </section>
-        <section id="sights">
-            <h2>Featured Sights</h2>
-            <ul>
-                <li>The Great Wall of China</li>
-                <li>Machu Picchu, Peru</li>
-                <li>The Pyramids of Giza, Egypt</li>
-                <li>Stonehenge, England</li>
-            </ul>
-        </section>
-        <section id="contact">
-            <h2>Contact Us</h2>
-            <p>Have a suggestion or question? Reach out to us at <a href="mailto:info@historicalsights.com">info@historicalsights.com</a>.</p>
-        </section>
+        <input type="text" id="search-bar" placeholder="Enter a location..." />
+        <button id="search-btn">Search</button>
+        <div id="map"></div>
     </div>
-    <footer>
-        <p>&copy; 2024 Historical Sights. All rights reserved.</p>
-    </footer>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Initialize the map
+        const map = L.map('map').setView([51.505, -0.09], 13); // Default to London
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Function to perform search using Nominatim API
+        document.getElementById('search-btn').addEventListener('click', function () {
+            const query = document.getElementById('search-bar').value;
+
+            if (query) {
+                fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.length > 0) {
+                            const location = data[0];
+                            const lat = location.lat;
+                            const lon = location.lon;
+
+                            // Center map to the searched location
+                            map.setView([lat, lon], 14);
+
+                            // Add a marker for the result
+                            L.marker([lat, lon])
+                                .addTo(map)
+                                .bindPopup(`<b>${location.display_name}</b>`)
+                                .openPopup();
+                        } else {
+                            alert('No results found!');
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+            }
+        });
+    </script>
 </body>
 </html>
