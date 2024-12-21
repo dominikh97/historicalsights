@@ -1,26 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="stylesheet" href="style.css">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Historical Sights Map</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-    <style>
-        #map { height: 100vh; } /* Full-screen map */
-    </style>
+    <!-- Link to external stylesheet -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Link to Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 </head>
 <body>
-    <header>
-        <h1>Historical Sights Search</h1>
-        <div id="search-container">
-            <input type="text" id="search-box" placeholder="Enter a place or region" />
-            <button id="search-button">Search</button>
-        </div>
-    </header>
+    <h1>Historical Sights Map</h1>
+    <!-- Map container -->
     <div id="map"></div>
 
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    <script src="script.js"></script> <!-- Link to your external script -->
+    <!-- Link to external JavaScript file (map.js) -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="map.js"></script>
 </body>
 </html>
