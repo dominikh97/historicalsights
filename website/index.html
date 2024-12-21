@@ -4,36 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Historical Sights Map</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <style>
-        #map {
-            height: 500px;
-            width: 100%;
-            margin-top: 1rem;
-            border-radius: 8px;
-        }
-        #search-bar {
-            margin: 10px 0;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            width: 100%;
-        }
+        #map { height: 100vh; } /* Full-screen map */
     </style>
 </head>
 <body>
-    <header>
-        <h1>Search Historical Sights</h1>
-    </header>
-    <div class="container">
-        <input type="text" id="search-bar" placeholder="Enter a location..." />
-        <button id="search-btn">Search</button>
-        <div id="map"></div>
-    </div>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script>
         // Initialize the map
-        const map = L.map('map').setView([51.505, -0.09], 13); // Default to London
+        const map = L.map('map').setView([0, 0], 2);
 
         // Add OpenStreetMap tiles
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -41,35 +23,56 @@
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
-        // Function to perform search using Nominatim API
-        document.getElementById('search-btn').addEventListener('click', function () {
-            const query = document.getElementById('search-bar').value;
+        // Overpass API endpoint
+        const overpassUrl = "https://overpass-api.de/api/interpreter";
 
-            if (query) {
-                fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.length > 0) {
-                            const location = data[0];
-                            const lat = location.lat;
-                            const lon = location.lon;
+        // Define the Overpass query
+        const query = `
+            [out:json][timeout:25];
+            node["historic"]({{-90,-180,90,180}});
+            out body;
+        `;
 
-                            // Center map to the searched location
-                            map.setView([lat, lon], 14);
+        // Fetch data from Overpass API
+        fetch(overpassUrl, {
+            method: "POST",
+            body: query,
+            headers: { "Content-Type": "application/x-www-form-urlencoded" }
+        })
+            .then(response => response.json())
+            .then(data => {
+                const geojson = {
+                    type: "FeatureCollection",
+                    features: data.elements.map(el => ({
+                        type: "Feature",
+                        geometry: {
+                            type: "Point",
+                            coordinates: [el.lon, el.lat]
+                        },
+                        properties: el.tags
+                    }))
+                };
 
-                            // Add a marker for the result
-                            L.marker([lat, lon])
-                                .addTo(map)
-                                .bindPopup(`<b>${location.display_name}</b>`)
-                                .openPopup();
-                        } else {
-                            alert('No results found!');
-                        }
-                    })
-                    .catch(error => console.error('Error:', error));
-            }
-        });
+                // Add GeoJSON data to the map
+                L.geoJSON(geojson, {
+                    onEachFeature: function (feature, layer) {
+                        const name = feature.properties.name || "Unknown Name";
+                        const historic = feature.properties.historic || "Historic Site";
+                        layer.bindPopup(`<b>${name}</b><br>${historic}`);
+                    },
+                    pointToLayer: function (feature, latlng) {
+                        return L.circleMarker(latlng, {
+                            radius: 6,
+                            fillColor: "#ff7800",
+                            color: "#000",
+                            weight: 1,
+                            opacity: 1,
+                            fillOpacity: 0.8
+                        });
+                    }
+                }).addTo(map);
+            })
+            .catch(err => console.error("Error fetching data:", err));
     </script>
-    <script src="script.js"></script>
 </body>
 </html>
