@@ -10,9 +10,3 @@ The website features:
 - Detailed descriptions of historical landmarks.
 - Visuals to illustrate the beauty and importance of these sights.
 - Simple and user-friendly navigation.
-
-## 🚀 Getting Started
-To run this project locally:
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/dominikh97/historicalsights.git
