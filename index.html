@@ -12,6 +12,9 @@
             margin: 0;
             padding: 0;
             background-color: #f9f9f9;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
         }
 
         header {
@@ -37,6 +40,7 @@
             justify-content: space-between;
             max-width: 1200px;
             margin: 20px auto;
+            flex: 1;
         }
 
         #controls {
@@ -77,6 +81,14 @@
             flex: 2;
             height: 500px;
             border-radius: 8px;
+        }
+
+        footer {
+            background-color: #2d3e50;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            font-size: 14px;
         }
 
         /* Responsive layout for smaller screens */
@@ -138,6 +150,10 @@
 
         <div id="map"></div>
     </div>
+
+    <footer>
+        <p>Impressum: This site is operated by Historic Sites Co., 123 Heritage Lane, History City, HC 56789, Country. Contact us at contact@historicsites.com.</p>
+    </footer>
 
     <script src="data.js"></script>
     <script>
