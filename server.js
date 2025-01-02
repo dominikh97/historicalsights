@@ -149,6 +149,62 @@ app.get('/api/historic-sites', async (req, res) => {
     }
 });
 
+app.use(express.json());
+
+app.get('/search', async (req, res) => {
+  try {
+    // Simulating data fetching and mapping process
+    const searchQuery = req.query.q;
+    
+    if (!searchQuery) {
+      return res.status(400).send('Query parameter "q" is required');
+    }
+
+    // Step 1: Fetch the country coordinates based on search (e.g., country name)
+    const country = await getCountryData(searchQuery);  // Asynchronous data fetching
+
+    if (!country) {
+      return res.status(404).send('Country not found');
+    }
+
+    // Step 2: Process the mapping (e.g., format data or process coordinates)
+    const mappedData = await processCoordinates(country);
+
+    // Step 3: Send the mapped data back to the frontend
+    res.json(mappedData);
+    
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('An error occurred while processing the request');
+  }
+});
+
+// Simulating an async function to fetch country data
+const getCountryData = (countryName) => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      // Simulate data fetching from countryCoordinates
+      const data = countryCoordinates[countryName];
+      if (data) {
+        resolve(data);
+      } else {
+        reject('Country not found');
+      }
+    }, 1000);  // Simulating delay in fetching data
+  });
+};
+
+// Simulating an async function to process coordinates
+const processCoordinates = (coordinates) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      // Simulate processing the coordinates (e.g., mapping or transformations)
+      const processedData = `Processed coordinates: ${coordinates}`;
+      resolve(processedData);
+    }, 500);  // Simulating processing delay
+  });
+};
+
 // Start the server
 const port = 5000;
 app.listen(port, () => {
