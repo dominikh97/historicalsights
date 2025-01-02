@@ -11,51 +11,120 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
+            background-color: #f9f9f9;
         }
+
+        header {
+            background-color: #2d3e50;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 36px;
+        }
+
+        header p {
+            font-size: 18px;
+            margin: 10px 0;
+        }
+
         #map {
             height: 500px;
+            margin-top: 20px;
         }
+
         #controls {
-            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: flex-start;
+            background-color: white;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            width: 300px;
+            margin: 20px auto;
         }
+
+        #controls label {
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
         select, button {
-            margin: 5px;
+            margin: 10px 0;
+            padding: 10px;
+            width: 100%;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            font-size: 16px;
+        }
+
+        button {
+            background-color: #2d3e50;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #4f5c6a;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
         }
     </style>
 </head>
 <body>
-    <div id="controls">
-        <label for="country">Country:</label>
-        <select id="country"></select>
 
-        <label for="historicType">Historic Type:</label>
-        <select id="historicType">
-            <option value="aqueduct">Aqueduct</option>
-            <option value="archaeological_site">Archaeological Site</option>
-            <option value="battlefield">Battlefield</option>
-            <option value="bomb_crater">Bomb Crater</option>
-            <option value="building">Building</option>
-            <option value="castle">Castle</option>
-            <option value="church">Church</option>
-            <option value="district">District</option>
-            <option value="farm">Farm</option>
-            <option value="fort">Fort</option>
-            <option value="house">House</option>
-            <option value="manor">Manor</option>
-            <option value="memorial">Memorial</option>
-            <option value="mine">Mine</option>
-            <option value="monastery">Monastery</option>
-            <option value="monument">Monument</option>
-            <option value="mosque">Mosque</option>
-            <option value="ruins">Ruins</option>
-            <option value="temple">Temple</option>
-            <option value="tomb">Tomb</option>
-            <option value="tower">Tower</option>
-        </select>
+    <header>
+        <h1>Historic Sites Search</h1>
+        <p>Search for historic sites by country and historic type on the map.</p>
+    </header>
 
-        <button id="searchBtn">Search</button>
+    <div class="container">
+        <div id="controls">
+            <label for="country">Country:</label>
+            <select id="country"></select>
+
+            <label for="historicType">Historic Type:</label>
+            <select id="historicType">
+                <option value="aqueduct">Aqueduct</option>
+                <option value="archaeological_site">Archaeological Site</option>
+                <option value="battlefield">Battlefield</option>
+                <option value="bomb_crater">Bomb Crater</option>
+                <option value="building">Building</option>
+                <option value="castle">Castle</option>
+                <option value="church">Church</option>
+                <option value="district">District</option>
+                <option value="farm">Farm</option>
+                <option value="fort">Fort</option>
+                <option value="house">House</option>
+                <option value="manor">Manor</option>
+                <option value="memorial">Memorial</option>
+                <option value="mine">Mine</option>
+                <option value="monastery">Monastery</option>
+                <option value="monument">Monument</option>
+                <option value="mosque">Mosque</option>
+                <option value="ruins">Ruins</option>
+                <option value="temple">Temple</option>
+                <option value="tomb">Tomb</option>
+                <option value="tower">Tower</option>
+            </select>
+
+            <button id="searchBtn">Search</button>
+        </div>
+
+        <div id="map"></div>
     </div>
-    <div id="map"></div>
 
     <script src="data.js"></script>
     <script>
@@ -129,4 +198,3 @@
     </script>
 </body>
 </html>
-
