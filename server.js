@@ -8,7 +8,7 @@ const overpassUrl = "https://overpass-api.de/api/interpreter";
 
 // Enable CORS for your specific origin
 app.use(cors({
-    origin: 'https://dominikh97.github.io/historicalsights/', // Allow only this origin
+    origin: 'https://dominikh97.github.io', // Allow only this origin
 }));
 
 // Helper function to query Overpass API
