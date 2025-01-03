@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "start": "node server.js"
+  },
   "name": "historicalsights",
   "version": "1.0.0",
   "description": "Historic sites service",
