@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors'); // Import the cors package
 const fetch = globalThis.fetch || require('node-fetch'); // Use native fetch or node-fetch as a fallback
 const { countryCoordinates } = require('./data'); // Import countryCoordinates from data.js
+const { logInfo, logError } = require('./logger'); // Import logging functions
 
 const app = express();
 const overpassUrl = "https://overpass-api.de/api/interpreter";
@@ -11,25 +12,42 @@ app.use(cors({
     origin: 'https://dominikh97.github.io', // Allow only this origin
 }));
 
-// Helper function to query Overpass API
-async function fetchOverpassData(query) {
+// Serve static files from the 'public' folder
+app.use(express.static('public'));
+
+// Helper function to query Overpass API with retry logic
+async function fetchOverpassData(query, retries = 5, delay = 1000) {
     try {
         const response = await fetch(overpassUrl, {
             method: 'POST',
             body: query,
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         });
+
+        // If 429 status code is received, apply backoff
+        if (response.status === 429) {
+            logError('Rate limit exceeded. Retrying...');
+            if (retries > 0) {
+                await new Promise(resolve => setTimeout(resolve, delay)); // Wait before retrying
+                return fetchOverpassData(query, retries - 1, delay * 2); // Retry with exponential backoff
+            } else {
+                throw new Error('Max retries reached. Unable to fetch data.');
+            }
+        }
+
         if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);
         }
         return await response.json();
     } catch (error) {
+        logError(`Failed to fetch from Overpass API: ${error.message}`);
         throw new Error(`Failed to fetch from Overpass API: ${error.message}`);
     }
 }
 
 // Endpoint for Level 1: Fetch countries
 app.get('/api/countries', (req, res) => {
+    logInfo('Request received for /api/countries');
     res.json(Object.keys(countryCoordinates)); // Only return country names
 });
 
@@ -39,35 +57,30 @@ app.get('/api/historic-sites', async (req, res) => {
 
     // Validate inputs: both country and historicType are mandatory
     if (!country || !historicType) {
+        logError('Missing country or historicType in request');
         return res.status(400).json({ error: 'Both country and historicType are required' });
     }
 
     // Check if the country exists in countryCoordinates
     if (!countryCoordinates[country]) {
+        logError(`Country ${country} not found in coordinates`);
         return res.status(404).json({ error: 'Country not found' });
     }
 
     // Get the bounding box for the country
     const boundingBox = countryCoordinates[country];
     if (!boundingBox) {
+        logError(`Bounding box for country ${country} not found`);
         return res.status(404).json({ error: 'Bounding box for the selected country not found' });
     }
 
     try {
-        // Construct the base Overpass query for node, way, and relation separately
+        logInfo(`Fetching historic sites for country: ${country}, type: ${historicType}, search term: ${searchTerm || 'N/A'}`);
+
+        // Construct the base Overpass query for node only (removed ways and relations)
         let nodeQuery = `
             [out:json][timeout:20];
             node["historic"="${historicType}"](${boundingBox});
-            out body;
-        `;
-        let wayQuery = `
-            [out:json][timeout:20];
-            way["historic"="${historicType}"](${boundingBox});
-            out body;
-        `;
-        let relationQuery = `
-            [out:json][timeout:20];
-            relation["historic"="${historicType}"](${boundingBox});
             out body;
         `;
 
@@ -79,24 +92,12 @@ app.get('/api/historic-sites', async (req, res) => {
                 node["historic"="${historicType}"]${searchTermQuery}(${boundingBox});
                 out body;
             `;
-            wayQuery = `
-                [out:json][timeout:20];
-                way["historic"="${historicType}"]${searchTermQuery}(${boundingBox});
-                out body;
-            `;
-            relationQuery = `
-                [out:json][timeout:20];
-                relation["historic"="${historicType}"]${searchTermQuery}(${boundingBox});
-                out body;
-            `;
         }
 
-        // Fetch data from Overpass API for nodes, ways, and relations
+        // Fetch data from Overpass API for nodes only
         const nodeData = await fetchOverpassData(nodeQuery);
-        const wayData = await fetchOverpassData(wayQuery);
-        const relationData = await fetchOverpassData(relationQuery);
 
-        // Combine and process results for nodes, ways, and relations
+        // Combine and process results for nodes only
         const results = [];
 
         // Process nodes
@@ -112,36 +113,16 @@ app.get('/api/historic-sites', async (req, res) => {
             });
         });
 
-        // Process ways
-        wayData.elements.forEach(element => {
-            results.push({
-                id: element.id,
-                type: 'way',
-                name: element.tags.name || 'Unnamed',
-                name_en: element.tags['name:en'] || 'Unnamed (English)',
-                historicType: element.tags.historic,
-            });
-        });
-
-        // Process relations
-        relationData.elements.forEach(element => {
-            results.push({
-                id: element.id,
-                type: 'relation',
-                name: element.tags.name || 'Unnamed',
-                name_en: element.tags['name:en'] || 'Unnamed (English)',
-                historicType: element.tags.historic,
-            });
-        });
-
         // Respond with the results
         if (results.length > 0) {
+            logInfo(`Found ${results.length} results for ${historicType} in ${country}${searchTerm ? ` matching '${searchTerm}'` : ''}`);
             res.json(results);
         } else {
+            logInfo(`No results found for ${historicType} in ${country}${searchTerm ? ` matching '${searchTerm}'` : ''}`);
             res.status(404).json({ message: `No ${historicType} found in ${country}${searchTerm ? ` matching '${searchTerm}'` : ''}` });
         }
     } catch (error) {
-        console.error('Error:', error);
+        logError(`Error fetching historic sites for ${country}: ${error.message}`);
         res.status(500).json({
             error: 'Failed to fetch historic sites',
             details: error.message,
@@ -149,64 +130,19 @@ app.get('/api/historic-sites', async (req, res) => {
     }
 });
 
-app.use(express.json());
-
-app.get('/search', async (req, res) => {
-  try {
-    // Simulating data fetching and mapping process
-    const searchQuery = req.query.q;
-    
-    if (!searchQuery) {
-      return res.status(400).send('Query parameter "q" is required');
-    }
-
-    // Step 1: Fetch the country coordinates based on search (e.g., country name)
-    const country = await getCountryData(searchQuery);  // Asynchronous data fetching
-
-    if (!country) {
-      return res.status(404).send('Country not found');
-    }
-
-    // Step 2: Process the mapping (e.g., format data or process coordinates)
-    const mappedData = await processCoordinates(country);
-
-    // Step 3: Send the mapped data back to the frontend
-    res.json(mappedData);
-    
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('An error occurred while processing the request');
-  }
+// Fallback route to serve index.html for unknown routes
+app.get('*', (req, res) => {
+    res.sendFile(__dirname + '/public/index.html');
 });
 
-// Simulating an async function to fetch country data
-const getCountryData = (countryName) => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      // Simulate data fetching from countryCoordinates
-      const data = countryCoordinates[countryName];
-      if (data) {
-        resolve(data);
-      } else {
-        reject('Country not found');
-      }
-    }, 1000);  // Simulating delay in fetching data
-  });
-};
-
-// Simulating an async function to process coordinates
-const processCoordinates = (coordinates) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // Simulate processing the coordinates (e.g., mapping or transformations)
-      const processedData = `Processed coordinates: ${coordinates}`;
-      resolve(processedData);
-    }, 500);  // Simulating processing delay
-  });
-};
-
 // Start the server
-const port = 5000;
+const port = process.env.PORT || 5000;
+app.listen(port, () => {
+    logInfo(`Server running on http://localhost:${port}`);
+});
+
+// Set Port configuration
+const port = process.env.PORT || 5000;
 app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);
 });
