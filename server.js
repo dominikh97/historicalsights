@@ -135,8 +135,8 @@ app.get('*', (req, res) => {
     res.sendFile(__dirname + '/public/index.html');
 });
 
-// Start the server
-const port = process.env.PORT || 5000;
-app.listen(port, () => {
-    logInfo(`Server running on http://localhost:${port}`);
+// Start server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 });
