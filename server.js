@@ -12,9 +12,6 @@ app.use(cors({
     origin: 'https://dominikh97.github.io', // Allow only this origin
 }));
 
-// Serve static files from the 'public' folder
-app.use(express.static('public'));
-
 // Helper function to query Overpass API with retry logic
 async function fetchOverpassData(query, retries = 5, delay = 1000) {
     try {
@@ -128,11 +125,6 @@ app.get('/api/historic-sites', async (req, res) => {
             details: error.message,
         });
     }
-});
-
-// Fallback route to serve index.html for unknown routes
-app.get('*', (req, res) => {
-    res.sendFile(__dirname + '/public/index.html');
 });
 
 // Start server
