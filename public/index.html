@@ -155,10 +155,10 @@
         <p>Universität Wien: Dominik Holzweber, Alexandra Nagel</p>
     </footer>
 
-    <script src="/data.js"></script>
+    <script src="/data.js"></script> <!-- Include country data -->
     <script>
         // Initialize map
-        const map = L.map('map').setView([20, 0], 2);
+        const map = L.map('map').setView([20, 0], 2); // Center map on world view
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
         }).addTo(map);
