@@ -1,8 +1,9 @@
 const express = require('express');
-const cors = require('cors'); // Import the cors package
-const fetch = globalThis.fetch || require('node-fetch'); // Use native fetch or node-fetch as a fallback
-const { countryCoordinates } = require('./data'); // Import countryCoordinates from data.js
-const { logInfo, logError } = require('./logger'); // Import logging functions
+const cors = require('cors');
+const fetch = globalThis.fetch || require('node-fetch');
+const { countryCoordinates } = require('./data');
+const { logInfo, logError } = require('./logger');
+const path = require('path'); // Add path module
 
 const app = express();
 const overpassUrl = "https://overpass-api.de/api/interpreter";
@@ -11,6 +12,9 @@ const overpassUrl = "https://overpass-api.de/api/interpreter";
 app.use(cors({
     origin: 'https://dominikh97.github.io', // Allow only this origin
 }));
+
+// Serve static files from the 'public' folder
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Root route to provide a friendly message or documentation link
 app.get('/', (req, res) => {
@@ -26,12 +30,11 @@ async function fetchOverpassData(query, retries = 5, delay = 1000) {
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         });
 
-        // If 429 status code is received, apply backoff
         if (response.status === 429) {
             logError('Rate limit exceeded. Retrying...');
             if (retries > 0) {
-                await new Promise(resolve => setTimeout(resolve, delay)); // Wait before retrying
-                return fetchOverpassData(query, retries - 1, delay * 2); // Retry with exponential backoff
+                await new Promise(resolve => setTimeout(resolve, delay));
+                return fetchOverpassData(query, retries - 1, delay * 2);
             } else {
                 throw new Error('Max retries reached. Unable to fetch data.');
             }
@@ -57,19 +60,16 @@ app.get('/api/countries', (req, res) => {
 app.get('/api/historic-sites', async (req, res) => {
     const { country, historicType, q: searchTerm } = req.query;
 
-    // Validate inputs: both country and historicType are mandatory
     if (!country || !historicType) {
         logError('Missing country or historicType in request');
         return res.status(400).json({ error: 'Both country and historicType are required' });
     }
 
-    // Check if the country exists in countryCoordinates
     if (!countryCoordinates[country]) {
         logError(`Country ${country} not found in coordinates`);
         return res.status(404).json({ error: 'Country not found' });
     }
 
-    // Get the bounding box for the country
     const boundingBox = countryCoordinates[country];
     if (!boundingBox) {
         logError(`Bounding box for country ${country} not found`);
@@ -79,14 +79,12 @@ app.get('/api/historic-sites', async (req, res) => {
     try {
         logInfo(`Fetching historic sites for country: ${country}, type: ${historicType}, search term: ${searchTerm || 'N/A'}`);
 
-        // Construct the base Overpass query for node only (removed ways and relations)
         let nodeQuery = `
             [out:json][timeout:20];
             node["historic"="${historicType}"](${boundingBox});
             out body;
         `;
 
-        // If a search term is provided, filter by the 'name' or 'name:en' tag (case-insensitive)
         if (searchTerm) {
             const searchTermQuery = `["name"~"${searchTerm}",i]["name:en"~"${searchTerm}",i]`;
             nodeQuery = `
@@ -96,13 +94,9 @@ app.get('/api/historic-sites', async (req, res) => {
             `;
         }
 
-        // Fetch data from Overpass API for nodes only
         const nodeData = await fetchOverpassData(nodeQuery);
-
-        // Combine and process results for nodes only
         const results = [];
 
-        // Process nodes
         nodeData.elements.forEach(element => {
             results.push({
                 id: element.id,
@@ -115,7 +109,6 @@ app.get('/api/historic-sites', async (req, res) => {
             });
         });
 
-        // Respond with the results
         if (results.length > 0) {
             logInfo(`Found ${results.length} results for ${historicType} in ${country}${searchTerm ? ` matching '${searchTerm}'` : ''}`);
             res.json(results);
