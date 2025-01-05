@@ -10,7 +10,7 @@ const overpassUrl = "https://overpass-api.de/api/interpreter";
 
 // Enable CORS for your specific origin
 app.use(cors({
-    origin: 'https://dominikh97.github.io', // Allow only this origin
+    origin: 'https://historicalsights.fly.dev', // Allow only this origin
 }));
 
 // Serve static files from the 'public' folder
