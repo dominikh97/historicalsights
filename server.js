@@ -12,6 +12,11 @@ app.use(cors({
     origin: 'https://dominikh97.github.io', // Allow only this origin
 }));
 
+// Root route to provide a friendly message or documentation link
+app.get('/', (req, res) => {
+    res.send('Welcome to the Historic Sites API. Please use the appropriate endpoints.');
+});
+
 // Helper function to query Overpass API with retry logic
 async function fetchOverpassData(query, retries = 5, delay = 1000) {
     try {
