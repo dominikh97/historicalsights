@@ -16,6 +16,11 @@ app.use(cors({
 // Serve static files from the 'public' folder
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Serve data.js from the server
+app.get('/data.js', (req, res) => {
+    res.sendFile(path.join(__dirname, 'data.js'));
+});
+
 // Root route to provide a friendly message or documentation link
 app.get('/', (req, res) => {
     res.send('Welcome to the Historic Sites API. Please use the appropriate endpoints.');
