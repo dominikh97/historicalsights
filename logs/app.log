@@ -27989,3 +27989,6 @@
 {"level":"info","message":"Fetching historic sites for country: Spain, type: church, search term: N/A","timestamp":"2025-01-02T20:59:37.646Z"}
 {"level":"info","message":"Found 69 results for church in Spain","timestamp":"2025-01-02T20:59:38.739Z"}
 {"level":"info","message":"Server running on http://localhost:5000","timestamp":"2025-01-02T21:21:47.793Z"}
+{"level":"info","message":"Server running on http://localhost:5000","timestamp":"2025-01-05T12:30:10.794Z"}
+{"level":"info","message":"Fetching historic sites for country: Cambodia, type: ruins, search term: N/A","timestamp":"2025-01-05T12:31:29.033Z"}
+{"level":"info","message":"Found 189 results for ruins in Cambodia","timestamp":"2025-01-05T12:31:29.958Z"}
