@@ -1,33 +1,92 @@
-// Function to generate a polygon based on node info
-function generatePolygon(lat, lon, info) {
-    // Default radius (e.g., 1000 meters, roughly 1km) for circular polygon
-    const defaultRadius = 0.01;  // ~1km radius (approx 0.01° in both lat and lon)
-    
-    // If we have more specific information (like area, type), we can adjust the polygon size
-    const radius = info && info.area ? info.area : defaultRadius;  // Adjust based on the data, if available
+// Initialize map
+const map = L.map('map').setView([20, 0], 2);  // Default to global view
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+}).addTo(map);
 
-    // Calculate the bounds of the polygon. In this case, we generate a circular-like shape.
-    const latLngs = [];
-    const numPoints = 36;  // Number of points for the circle (increased for smoother results)
+// Variable to hold the currently selected node
+let selectedNode = null;
 
-    for (let i = 0; i < numPoints; i++) {
-        const angle = (i / numPoints) * (2 * Math.PI); // Full circle
-        const dx = radius * Math.cos(angle);
-        const dy = radius * Math.sin(angle);
-        
-        // Append the points around the center (lat, lon)
-        latLngs.push([lat + dy, lon + dx]);
+// Populate country dropdown from data.js (loaded from 'data.js' script)
+const countryDropdown = document.getElementById('country');
+Object.keys(countryCoordinates).forEach(country => {
+    const option = document.createElement('option');
+    option.value = country;
+    option.textContent = country;
+    countryDropdown.appendChild(option);
+});
+
+// Event listener for search button
+document.getElementById('searchBtn').addEventListener('click', async () => {
+    const country = countryDropdown.value;
+    const historicType = document.getElementById('historicType').value;
+
+    if (!country || !historicType) {
+        alert('Please select both country and historic type.');
+        return;
     }
 
-    // Create a polygon using the generated points
-    return L.polygon(latLngs, {
-        color: 'blue',
-        weight: 2,
-        fillOpacity: 0.4,
-    });
-}
+    try {
+        // Fetch data from the backend API
+        const response = await fetch(`http://localhost:5000/api/historic-sites?country=${encodeURIComponent(country)}&historicType=${encodeURIComponent(historicType)}`);
+        if (!response.ok) {
+            throw new Error(`Error: ${response.statusText}`);
+        }
 
-// Function to create and download the polygon
+        const data = await response.json();
+        if (data.length === 0) {
+            alert(`No results found for ${historicType} in ${country}.`);
+            return;
+        }
+
+        // Clear existing markers from map
+        map.eachLayer(layer => {
+            if (layer instanceof L.Marker) {
+                map.removeLayer(layer);
+            }
+        });
+
+        // Add markers for each result
+        data.forEach(site => {
+            if (site.lat && site.lon) {
+                const popupContent = `
+                    <strong>${site.name || 'Unnamed'}</strong><br>
+                    English Name: ${site.name_en || 'N/A'}<br>
+                    Type: ${site.historicType}<br>
+                    <a href="https://www.openstreetmap.org/${site.type}/${site.id}" target="_blank">View on OSM</a>
+                `;
+                const marker = L.marker([site.lat, site.lon]).addTo(map).bindPopup(popupContent);
+                marker.on('click', () => {
+                    selectedNode = { lat: site.lat, lon: site.lon, name: site.name };
+                    document.getElementById('nodeDetails').textContent = `Node: ${site.name || 'Unnamed'}, Coordinates: (${site.lat}, ${site.lon})`;
+
+                    // Show the polygon button when a node is selected
+                    document.getElementById('polygonBtn').style.display = 'block';
+                });
+            }
+        });
+
+        // Zoom to first result
+        const firstResult = data.find(site => site.lat && site.lon);
+        if (firstResult) {
+            map.setView([firstResult.lat, firstResult.lon], 10);
+        }
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        alert('Failed to fetch historic sites. Please try again later.');
+    }
+});
+
+// Attach event listener to the "Calculate and Fetch Polygon" button
+document.getElementById('polygonBtn').addEventListener('click', function() {
+    if (selectedNode) {
+        createPolygon(selectedNode);
+    } else {
+        alert('Please select a node first.');
+    }
+});
+
+// Function to generate and draw the polygon based on the selected node
 function createPolygon(node) {
     const lat = node.lat;
     const lon = node.lon;
@@ -40,51 +99,48 @@ function createPolygon(node) {
             const page = Object.values(data.query.pages)[0];
             const wikiText = page.extract || '';
 
-            // Determine polygon size based on available info
-            const info = {
-                area: parseFloat(wikiText.match(/area\s*=\s*(\d+(\.\d+)?)/i)?.[1]) || 0.01, // Default fallback to small area
-            };
+            // Default fallback for polygon size if no additional info is found
+            let info = { area: 0.01 };  // Fallback to a small polygon if no area is found
 
+            // You can extend this to extract more detailed data from the wikitext
+            // For now, we look for a simple pattern for the area
+            const areaMatch = wikiText.match(/area\s*=\s*(\d+(\.\d+)?)/i);
+            if (areaMatch) {
+                info.area = parseFloat(areaMatch[1]);
+            }
+
+            // Generate polygon coordinates based on the selected node and info
             const polygon = generatePolygon(lat, lon, info);
             polygon.addTo(map);
 
-            // Center map to the polygon
+            // Optionally, you can zoom into the polygon once it's drawn
             map.fitBounds(polygon.getBounds());
-
-            // Prepare the GeoJSON data for download
-            const geojson = polygon.toGeoJSON();
-            downloadGeoJSON(geojson);
         })
-        .catch(error => {
-            console.error('Error fetching WikiText data:', error);
-            
-            // If fetch fails, create a default polygon without detailed data
-            const defaultPolygon = generatePolygon(lat, lon, {});
-            defaultPolygon.addTo(map);
-            map.fitBounds(defaultPolygon.getBounds());
-
-            // Prepare the GeoJSON data for download
-            const geojson = defaultPolygon.toGeoJSON();
-            downloadGeoJSON(geojson);
+        .catch(err => {
+            console.error('Error fetching Wikipedia data:', err);
+            alert('Failed to fetch detailed information for the polygon.');
         });
 }
 
-// Function to trigger download of GeoJSON data
-function downloadGeoJSON(geojson) {
-    const blob = new Blob([JSON.stringify(geojson)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'polygon.geojson';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-}
+// Helper function to generate a polygon (for now, a simple rectangular polygon)
+function generatePolygon(lat, lon, info) {
+    const offset = info.area * 1000; // Convert the area factor into lat/lon offset
+    const bounds = [
+        [lat - offset, lon - offset],
+        [lat + offset, lon + offset]
+    ];
 
-// Attach event listener to the "Calculate and Fetch Polygon" button
-document.getElementById('polygonBtn').addEventListener('click', function() {
-    const selectedNode = window.selectedNode;  // Assuming this is the selected marker's data
-    if (selectedNode) {
-        createPolygon(selectedNode);
-    }
-});
+    // Return a rectangular polygon for now, using the generated bounds
+    const polygon = L.polygon([
+        [lat - offset, lon - offset],
+        [lat + offset, lon - offset],
+        [lat + offset, lon + offset],
+        [lat - offset, lon + offset]
+    ], {
+        color: 'blue',
+        weight: 2,
+        fillOpacity: 0.3
+    });
+
+    return polygon;
+}
