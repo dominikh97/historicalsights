@@ -56,12 +56,12 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
                     <a href="https://www.openstreetmap.org/${site.type}/${site.id}" target="_blank">View on OSM</a>
                 `;
                 const marker = L.marker([site.lat, site.lon]).addTo(map).bindPopup(popupContent);
-                marker.on('click', () => {
-                    selectedNode = { lat: site.lat, lon: site.lon, name: site.name };
-                    document.getElementById('nodeDetails').textContent = `Node: ${site.name || 'Unnamed'}, Coordinates: (${site.lat}, ${site.lon})`;
 
-                    // Show the polygon button when a node is selected
-                    document.getElementById('polygonBtn').style.display = 'block';
+                // Attach click event to set the selected marker
+                marker.on('click', () => {
+                    selectedNode = site;
+                    document.getElementById('nodeDetails').textContent = `Selected: ${site.name || 'Unnamed'}`;
+                    document.getElementById('factsheetBtn').style.display = 'block';  // Show the button to generate factsheet
                 });
             }
         });
@@ -77,70 +77,51 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
     }
 });
 
-// Attach event listener to the "Calculate and Fetch Polygon" button
-document.getElementById('polygonBtn').addEventListener('click', function() {
-    if (selectedNode) {
-        createPolygon(selectedNode);
-    } else {
-        alert('Please select a node first.');
+// Event listener for the factsheet button
+document.getElementById('factsheetBtn').addEventListener('click', async () => {
+    if (!selectedNode) {
+        alert('Please select a marker first!');
+        return;
     }
+
+    const { name, lat, lon } = selectedNode;
+
+    // Example API call to Wikipedia or another source for the factsheet info
+    const factsheet = await generateFactsheet(name, lat, lon);
+
+    // Display factsheet in the right panel
+    const factsheetDiv = document.getElementById('nodeDetails');
+    factsheetDiv.innerHTML = `
+        <h4>Factsheet for ${name || 'Unnamed'}</h4>
+        <p><strong>Location:</strong> Latitude: ${lat}, Longitude: ${lon}</p>
+        <p><strong>Historical Significance:</strong> ${factsheet.significance}</p>
+        <p><strong>Notable Events:</strong> ${factsheet.events}</p>
+        <p><strong>Cultural Context:</strong> ${factsheet.culturalContext}</p>
+    `;
 });
 
-// Function to generate and draw the polygon based on the selected node
-function createPolygon(node) {
-    const lat = node.lat;
-    const lon = node.lon;
-    const name = node.name || 'Unnamed Node';
+// Function to generate factsheet using AI (e.g., GPT-3 or GPT-4)
+async function generateFactsheet(name, lat, lon) {
+    const prompt = `Provide a detailed historical factsheet for a location named "${name}", with coordinates Latitude: ${lat}, Longitude: ${lon}. Include the historical significance, notable events, and cultural context.`;
 
-    // Fetch additional information (like area or type) for refining the polygon
-    fetch(`https://en.wikipedia.org/w/api.php?action=query&prop=extracts&format=json&titles=${encodeURIComponent(name)}&exintro&explaintext`)
-        .then(response => response.json())
-        .then(data => {
-            const page = Object.values(data.query.pages)[0];
-            const wikiText = page.extract || '';
-
-            // Default fallback for polygon size if no additional info is found
-            let info = { area: 0.01 };  // Fallback to a small polygon if no area is found
-
-            // You can extend this to extract more detailed data from the wikitext
-            // For now, we look for a simple pattern for the area
-            const areaMatch = wikiText.match(/area\s*=\s*(\d+(\.\d+)?)/i);
-            if (areaMatch) {
-                info.area = parseFloat(areaMatch[1]);
-            }
-
-            // Generate polygon coordinates based on the selected node and info
-            const polygon = generatePolygon(lat, lon, info);
-            polygon.addTo(map);
-
-            // Optionally, you can zoom into the polygon once it's drawn
-            map.fitBounds(polygon.getBounds());
+    // Call AI (OpenAI) API (Note: you'll need an actual API key)
+    const response = await fetch('https://api.openai.com/v1/completions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer YOUR_API_KEY' // Replace with your OpenAI API key
+        },
+        body: JSON.stringify({
+            model: 'text-davinci-003', // or any other model like GPT-4
+            prompt: prompt,
+            max_tokens: 500
         })
-        .catch(err => {
-            console.error('Error fetching Wikipedia data:', err);
-            alert('Failed to fetch detailed information for the polygon.');
-        });
-}
-
-// Helper function to generate a polygon (for now, a simple rectangular polygon)
-function generatePolygon(lat, lon, info) {
-    const offset = info.area * 1000; // Convert the area factor into lat/lon offset
-    const bounds = [
-        [lat - offset, lon - offset],
-        [lat + offset, lon + offset]
-    ];
-
-    // Return a rectangular polygon for now, using the generated bounds
-    const polygon = L.polygon([
-        [lat - offset, lon - offset],
-        [lat + offset, lon - offset],
-        [lat + offset, lon + offset],
-        [lat - offset, lon + offset]
-    ], {
-        color: 'blue',
-        weight: 2,
-        fillOpacity: 0.3
     });
 
-    return polygon;
+    const data = await response.json();
+    return {
+        significance: data.choices[0].text.split('\n')[0],  // Example of extracting information
+        events: data.choices[0].text.split('\n')[1],  // Extract notable events
+        culturalContext: data.choices[0].text.split('\n')[2]  // Cultural context
+    };
 }
