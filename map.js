@@ -1,56 +1,70 @@
 // map.js
-const L = require('leaflet'); // Ensure Leaflet is installed
 
-// Create a map centered on a default location
-const map = L.map('map').setView([51.505, -0.09], 13); // Example: Center at coordinates [51.505, -0.09]
-
-// Set up the OpenStreetMap tile layer for the background map
+// Initialize map
+const map = L.map('map').setView([20, 0], 2);  // Default to global view
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 19,
 }).addTo(map);
 
-// Function to fetch historic sites data
-async function fetchHistoricSites(country, historicType, searchTerm) {
-  try {
-    const response = await fetch(`/api/historic-sites?country=${country}&historicType=${historicType}&q=${searchTerm || ''}`);
-    if (!response.ok) {
-      throw new Error('Failed to fetch historic sites data');
+// Populate country dropdown from data.js (loaded from 'data.js' script)
+const countryDropdown = document.getElementById('country');
+Object.keys(countryCoordinates).forEach(country => {
+    const option = document.createElement('option');
+    option.value = country;
+    option.textContent = country;
+    countryDropdown.appendChild(option);
+});
+
+// Event listener for search button
+document.getElementById('searchBtn').addEventListener('click', async () => {
+    const country = countryDropdown.value;
+    const historicType = document.getElementById('historicType').value;
+
+    if (!country || !historicType) {
+        alert('Please select both country and historic type.');
+        return;
     }
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error(error);
-  }
-}
 
-// Function to display historic sites on the map
-function displayHistoricSites(historicSites) {
-  historicSites.forEach(site => {
-    const { lat, lon, name, name_en } = site;
-    const popupContent = `
-      <h3>${name}</h3>
-      <p>English Name: ${name_en}</p>
-      <p>Historic Type: ${site.historicType}</p>
-    `;
+    try {
+        // Fetch data from the backend API
+        const response = await fetch(`http://localhost:5000/api/historic-sites?country=${encodeURIComponent(country)}&historicType=${encodeURIComponent(historicType)}`);
+        if (!response.ok) {
+            throw new Error(`Error: ${response.statusText}`);
+        }
 
-    // Create a marker for each historic site
-    const marker = L.marker([lat, lon]).addTo(map);
-    marker.bindPopup(popupContent);
-  });
-}
+        const data = await response.json();
+        if (data.length === 0) {
+            alert(`No results found for ${historicType} in ${country}.`);
+            return;
+        }
 
-// Example usage: Fetch and display historic sites for a specific country and type
-// Call the fetch function and pass in parameters like 'Germany' and 'castle'
-async function loadAndDisplaySites() {
-  const country = 'Germany';  // Example country
-  const historicType = 'castle';  // Example type
-  const searchTerm = '';  // Optional search term
+        // Clear existing markers from map
+        map.eachLayer(layer => {
+            if (layer instanceof L.Marker) {
+                map.removeLayer(layer);
+            }
+        });
 
-  const sites = await fetchHistoricSites(country, historicType, searchTerm);
-  if (sites) {
-    displayHistoricSites(sites);
-  }
-}
+        // Add markers for each result
+        data.forEach(site => {
+            if (site.lat && site.lon) {
+                const popupContent = `
+                    <strong>${site.name || 'Unnamed'}</strong><br>
+                    English Name: ${site.name_en || 'N/A'}<br>
+                    Type: ${site.historicType}<br>
+                    <a href="https://www.openstreetmap.org/${site.type}/${site.id}" target="_blank">View on OSM</a>
+                `;
+                L.marker([site.lat, site.lon]).addTo(map).bindPopup(popupContent);
+            }
+        });
 
-// Call the function to load and display sites
-loadAndDisplaySites();
+        // Zoom to first result
+        const firstResult = data.find(site => site.lat && site.lon);
+        if (firstResult) {
+            map.setView([firstResult.lat, firstResult.lon], 10);
+        }
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        alert('Failed to fetch historic sites. Please try again later.');
+    }
+});
