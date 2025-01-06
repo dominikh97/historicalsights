@@ -67,4 +67,7 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
         console.error('Error fetching data:', error);
         alert('Failed to fetch historic sites. Please try again later.');
     }
+
+    <script src="drawPolygon.js"></script>
+
 });
