@@ -31,22 +31,20 @@
             margin: 10px 0;
         }
 
-        #map {
-            height: 500px;
-            margin-top: 20px;
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
         }
 
         #controls {
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            align-items: flex-start;
             background-color: white;
             padding: 20px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
             width: 300px;
-            margin: 20px auto;
         }
 
         #controls label {
@@ -73,13 +71,10 @@
             background-color: #4f5c6a;
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
+        #map {
+            height: 500px;
+            flex-grow: 1;  /* Makes the map take up remaining space */
+            margin-left: 20px;
         }
     </style>
 </head>
@@ -127,7 +122,7 @@
     </div>
 
     <script src="data.js"></script>
-    <script src="map.js"></script>  <!-- Include the new map.js here -->
+    <script src="map.js"></script>
 
 </body>
 </html>
