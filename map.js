@@ -4,6 +4,9 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
 }).addTo(map);
 
+// Variable to hold the currently selected node
+let selectedNode = null;
+
 // Populate country dropdown from data.js (loaded from 'data.js' script)
 const countryDropdown = document.getElementById('country');
 Object.keys(countryCoordinates).forEach(country => {
@@ -12,10 +15,6 @@ Object.keys(countryCoordinates).forEach(country => {
     option.textContent = country;
     countryDropdown.appendChild(option);
 });
-
-// Set up the right panel button
-const polygonBtn = document.getElementById('polygonBtn');
-const nodeDetails = document.getElementById('nodeDetails');
 
 // Event listener for search button
 document.getElementById('searchBtn').addEventListener('click', async () => {
@@ -57,13 +56,12 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
                     <a href="https://www.openstreetmap.org/${site.type}/${site.id}" target="_blank">View on OSM</a>
                 `;
                 const marker = L.marker([site.lat, site.lon]).addTo(map).bindPopup(popupContent);
-
-                // Add event listener for each marker
                 marker.on('click', () => {
-                    // Display node details and show polygon button
-                    nodeDetails.textContent = `Name: ${site.name || 'Unnamed'}\nType: ${site.historicType}`;
-                    polygonBtn.style.display = 'block'; // Show polygon button
-                    polygonBtn.onclick = () => drawPolygon(site); // Set click handler to fetch polygon
+                    selectedNode = { lat: site.lat, lon: site.lon, name: site.name };
+                    document.getElementById('nodeDetails').textContent = `Node: ${site.name || 'Unnamed'}, Coordinates: (${site.lat}, ${site.lon})`;
+
+                    // Show the polygon button when a node is selected
+                    document.getElementById('polygonBtn').style.display = 'block';
                 });
             }
         });
@@ -79,11 +77,70 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
     }
 });
 
-// This is where the polygon drawing logic will happen
-function drawPolygon(site) {
-    // Call the drawPolygon function from drawPolygon.js to calculate and display the polygon
-    console.log('Fetching polygon for:', site.name);
-    // Assuming drawPolygon function is defined in drawPolygon.js and will take care of fetching the polygon data
-    // For example, this could be a function that fetches data from the wiki-text or other source
-    // The polygon is then drawn based on the retrieved data
+// Attach event listener to the "Calculate and Fetch Polygon" button
+document.getElementById('polygonBtn').addEventListener('click', function() {
+    if (selectedNode) {
+        createPolygon(selectedNode);
+    } else {
+        alert('Please select a node first.');
+    }
+});
+
+// Function to generate and draw the polygon based on the selected node
+function createPolygon(node) {
+    const lat = node.lat;
+    const lon = node.lon;
+    const name = node.name || 'Unnamed Node';
+
+    // Fetch additional information (like area or type) for refining the polygon
+    fetch(`https://en.wikipedia.org/w/api.php?action=query&prop=extracts&format=json&titles=${encodeURIComponent(name)}&exintro&explaintext`)
+        .then(response => response.json())
+        .then(data => {
+            const page = Object.values(data.query.pages)[0];
+            const wikiText = page.extract || '';
+
+            // Default fallback for polygon size if no additional info is found
+            let info = { area: 0.01 };  // Fallback to a small polygon if no area is found
+
+            // You can extend this to extract more detailed data from the wikitext
+            // For now, we look for a simple pattern for the area
+            const areaMatch = wikiText.match(/area\s*=\s*(\d+(\.\d+)?)/i);
+            if (areaMatch) {
+                info.area = parseFloat(areaMatch[1]);
+            }
+
+            // Generate polygon coordinates based on the selected node and info
+            const polygon = generatePolygon(lat, lon, info);
+            polygon.addTo(map);
+
+            // Optionally, you can zoom into the polygon once it's drawn
+            map.fitBounds(polygon.getBounds());
+        })
+        .catch(err => {
+            console.error('Error fetching Wikipedia data:', err);
+            alert('Failed to fetch detailed information for the polygon.');
+        });
+}
+
+// Helper function to generate a polygon (for now, a simple rectangular polygon)
+function generatePolygon(lat, lon, info) {
+    const offset = info.area * 1000; // Convert the area factor into lat/lon offset
+    const bounds = [
+        [lat - offset, lon - offset],
+        [lat + offset, lon + offset]
+    ];
+
+    // Return a rectangular polygon for now, using the generated bounds
+    const polygon = L.polygon([
+        [lat - offset, lon - offset],
+        [lat + offset, lon - offset],
+        [lat + offset, lon + offset],
+        [lat - offset, lon + offset]
+    ], {
+        color: 'blue',
+        weight: 2,
+        fillOpacity: 0.3
+    });
+
+    return polygon;
 }
