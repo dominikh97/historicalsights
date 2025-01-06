@@ -88,9 +88,9 @@
             flex-grow: 1;
         }
 
-        /* Initially hide the calculate button */
-        #calculateAndDownloadBtn {
-            display: none;
+        #nodeDetails {
+            margin-top: 20px;
+            font-size: 14px;
         }
     </style>
 </head>
@@ -136,11 +136,10 @@
 
         <div id="map"></div>
 
-        <!-- New right panel -->
         <div id="rightPanel">
             <h3>Node Information</h3>
             <p id="nodeDetails">Select a node to view details here.</p>
-            <button id="calculateAndDownloadBtn">Calculate and Download Polygon</button>
+            <button id="polygonBtn" style="display:none;">Calculate and Fetch Polygon</button>
         </div>
     </div>
 
