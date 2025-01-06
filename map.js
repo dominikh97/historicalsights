@@ -1,89 +1,83 @@
-// Initialize map
-const map = L.map('map').setView([20, 0], 2);  // Default to global view
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-}).addTo(map);
+// Assuming this is the logic when a node (marker) is selected on the map
+let selectedMarker = null;
 
-// Populate country dropdown from data.js (loaded from 'data.js' script)
-const countryDropdown = document.getElementById('country');
-Object.keys(countryCoordinates).forEach(country => {
-    const option = document.createElement('option');
-    option.value = country;
-    option.textContent = country;
-    countryDropdown.appendChild(option);
-});
+// Handle when a marker is clicked
+function onNodeSelect(node) {
+    // Store the selected node
+    selectedMarker = node;
 
-// Set up the right panel button
-const polygonBtn = document.getElementById('polygonBtn');
-const nodeDetails = document.getElementById('nodeDetails');
+    // Update the node details in the right panel
+    document.getElementById('nodeDetails').textContent = node.name || 'No name available';
 
-// Event listener for search button
-document.getElementById('searchBtn').addEventListener('click', async () => {
-    const country = countryDropdown.value;
-    const historicType = document.getElementById('historicType').value;
+    // Show the "Calculate and Download Polygon" button
+    document.getElementById('calculateAndDownloadBtn').style.display = 'block';
+}
 
-    if (!country || !historicType) {
-        alert('Please select both country and historic type.');
+// Event listener for the "Calculate and Download Polygon" button
+document.getElementById('calculateAndDownloadBtn').addEventListener('click', async () => {
+    if (!selectedMarker) {
+        alert('Please select a node first.');
         return;
     }
 
     try {
-        // Fetch data from the backend API
-        const response = await fetch(`http://localhost:5000/api/historic-sites?country=${encodeURIComponent(country)}&historicType=${encodeURIComponent(historicType)}`);
-        if (!response.ok) {
-            throw new Error(`Error: ${response.statusText}`);
-        }
+        // Fetch the polygon data for the selected marker
+        const polygonData = await fetchPolygonFromWikitext(selectedMarker);
 
-        const data = await response.json();
-        if (data.length === 0) {
-            alert(`No results found for ${historicType} in ${country}.`);
-            return;
-        }
+        // Draw the polygon on the map
+        const polygonLayer = L.geoJSON(polygonData).addTo(map);
 
-        // Clear existing markers from map
-        map.eachLayer(layer => {
-            if (layer instanceof L.Marker) {
-                map.removeLayer(layer);
-            }
-        });
+        // Convert to GeoJSON
+        const geojsonData = polygonLayer.toGeoJSON();
 
-        // Add markers for each result
-        data.forEach(site => {
-            if (site.lat && site.lon) {
-                const popupContent = `
-                    <strong>${site.name || 'Unnamed'}</strong><br>
-                    English Name: ${site.name_en || 'N/A'}<br>
-                    Type: ${site.historicType}<br>
-                    <a href="https://www.openstreetmap.org/${site.type}/${site.id}" target="_blank">View on OSM</a>
-                `;
-                const marker = L.marker([site.lat, site.lon]).addTo(map).bindPopup(popupContent);
+        // Trigger download of the GeoJSON file
+        downloadGeoJSON(geojsonData);
 
-                // Add event listener for each marker
-                marker.on('click', () => {
-                    // Display node details and show polygon button
-                    nodeDetails.textContent = `Name: ${site.name || 'Unnamed'}\nType: ${site.historicType}`;
-                    polygonBtn.style.display = 'block'; // Show polygon button
-                    polygonBtn.onclick = () => drawPolygon(site); // Set click handler to fetch polygon
-                });
-            }
-        });
-
-        // Zoom to first result
-        const firstResult = data.find(site => site.lat && site.lon);
-        if (firstResult) {
-            map.setView([firstResult.lat, firstResult.lon], 10);
-        }
     } catch (error) {
-        console.error('Error fetching data:', error);
-        alert('Failed to fetch historic sites. Please try again later.');
+        console.error('Error calculating polygon:', error);
+        alert('Failed to calculate and fetch polygon.');
     }
 });
 
-// This is where the polygon drawing logic will happen
-function drawPolygon(site) {
-    // Call the drawPolygon function from drawPolygon.js to calculate and display the polygon
-    console.log('Fetching polygon for:', site.name);
-    // Assuming drawPolygon function is defined in drawPolygon.js and will take care of fetching the polygon data
-    // For example, this could be a function that fetches data from the wiki-text or other source
-    // The polygon is then drawn based on the retrieved data
+// Function to download GeoJSON
+function downloadGeoJSON(geojsonData) {
+    const blob = new Blob([JSON.stringify(geojsonData)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'polygon.geojson'; // Set the filename for the download
+    a.click();
+
+    // Cleanup the URL object
+    URL.revokeObjectURL(url);
+}
+
+// Example function to fetch the polygon based on Wikitext or other logic
+async function fetchPolygonFromWikitext(node) {
+    // This is a mock function. Replace it with actual logic to fetch polygon data.
+    const mockGeoJSON = {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [
+                        [
+                            [-0.1276, 51.5074],
+                            [-0.1426, 51.5074],
+                            [-0.1426, 51.5154],
+                            [-0.1276, 51.5154],
+                            [-0.1276, 51.5074]
+                        ]
+                    ]
+                },
+                "properties": {
+                    "name": "Sample Polygon"
+                }
+            }
+        ]
+    };
+    return new Promise((resolve) => setTimeout(() => resolve(mockGeoJSON), 1000)); // Simulate async fetch
 }
