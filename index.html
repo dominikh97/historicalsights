@@ -45,7 +45,7 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
             width: 300px;
-            flex-shrink: 0; /* Prevents it from shrinking */
+            flex-shrink: 0;
         }
 
         #rightPanel {
@@ -54,8 +54,8 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
             width: 300px;
-            flex-shrink: 0; /* Prevents it from shrinking */
-            margin-left: 20px; /* Space between map and right panel */
+            flex-shrink: 0;
+            margin-left: 20px;
         }
 
         #controls label,
@@ -85,7 +85,7 @@
 
         #map {
             height: 500px;
-            flex-grow: 1;  /* Makes the map take up remaining space */
+            flex-grow: 1;
         }
 
         #nodeDetails {
@@ -136,12 +136,9 @@
 
         <div id="map"></div>
 
-        <!-- New right panel -->
         <div id="rightPanel">
             <h3>Node Information</h3>
             <p id="nodeDetails">Select a node to view details here.</p>
-
-            <!-- Button for calculating and fetching polygon -->
             <button id="polygonBtn" style="display:none;">Calculate and Fetch Polygon</button>
         </div>
     </div>
