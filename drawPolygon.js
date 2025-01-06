@@ -1,85 +1,75 @@
-// Function to parse WikiText and generate polygon boundaries
-function parseWikiTextToBounds(wikiText, lat, lon) {
-    // For simplicity, let's assume we can extract a bounding box or coordinates from the WikiText.
-    // If we can't extract data, we will fallback to a rectangle.
+// Function to generate a polygon based on node info
+function generatePolygon(lat, lon, info) {
+    // Default radius (e.g., 1000 meters, roughly 1km) for circular polygon
+    const defaultRadius = 0.01;  // ~1km radius (approx 0.01° in both lat and lon)
     
-    // Sample regex to match any coordinates or bounding box data in WikiText (adjust based on actual WikiText format)
-    const boundsRegex = /bbox\s*=\s*\[([^\]]+)\]/i;
-    const match = wikiText.match(boundsRegex);
-    
-    if (match) {
-        const coordinates = match[1].split(',').map(coord => parseFloat(coord.trim()));
-        if (coordinates.length === 4) {
-            // We have a valid bounding box with [minLon, minLat, maxLon, maxLat]
-            return [
-                [coordinates[1], coordinates[0]],  // [minLat, minLon]
-                [coordinates[3], coordinates[2]],  // [maxLat, maxLon]
-            ];
-        }
+    // If we have more specific information (like area, type), we can adjust the polygon size
+    const radius = info && info.area ? info.area : defaultRadius;  // Adjust based on the data, if available
+
+    // Calculate the bounds of the polygon. In this case, we generate a circular-like shape.
+    const latLngs = [];
+    const numPoints = 36;  // Number of points for the circle (increased for smoother results)
+
+    for (let i = 0; i < numPoints; i++) {
+        const angle = (i / numPoints) * (2 * Math.PI); // Full circle
+        const dx = radius * Math.cos(angle);
+        const dy = radius * Math.sin(angle);
+        
+        // Append the points around the center (lat, lon)
+        latLngs.push([lat + dy, lon + dx]);
     }
 
-    // If no valid bounding box is found, fallback to a rectangular polygon around the node
-    const latOffset = 0.1;  // 10km offset
-    const lonOffset = 0.1;  // 10km offset
-    return [
-        [lat - latOffset, lon - lonOffset],  // Lower left
-        [lat - latOffset, lon + lonOffset],  // Lower right
-        [lat + latOffset, lon + lonOffset],  // Upper right
-        [lat + latOffset, lon - lonOffset],  // Upper left
-    ];
+    // Create a polygon using the generated points
+    return L.polygon(latLngs, {
+        color: 'blue',
+        weight: 2,
+        fillOpacity: 0.4,
+    });
 }
 
-// Function to create and download a polygon
+// Function to create and download the polygon
 function createPolygon(node) {
     const lat = node.lat;
     const lon = node.lon;
     const name = node.name || 'Unnamed Node';
 
-    // Fetch WikiText information based on node
+    // Fetch additional information (like area or type) for refining the polygon
     fetch(`https://en.wikipedia.org/w/api.php?action=query&prop=extracts&format=json&titles=${encodeURIComponent(name)}&exintro&explaintext`)
         .then(response => response.json())
         .then(data => {
             const page = Object.values(data.query.pages)[0];
             const wikiText = page.extract || '';
-            const bounds = parseWikiTextToBounds(wikiText, lat, lon);
-            
-            // Create the polygon from bounds
-            const polygon = L.polygon(bounds, {
-                color: 'blue',
-                weight: 2,
-                fillOpacity: 0.4,
-            }).addTo(map);
-            
-            // Center the map on the polygon
+
+            // Determine polygon size based on available info
+            const info = {
+                area: parseFloat(wikiText.match(/area\s*=\s*(\d+(\.\d+)?)/i)?.[1]) || 0.01, // Default fallback to small area
+            };
+
+            const polygon = generatePolygon(lat, lon, info);
+            polygon.addTo(map);
+
+            // Center map to the polygon
             map.fitBounds(polygon.getBounds());
 
-            // Prepare GeoJSON data for download
+            // Prepare the GeoJSON data for download
             const geojson = polygon.toGeoJSON();
             downloadGeoJSON(geojson);
         })
         .catch(error => {
             console.error('Error fetching WikiText data:', error);
-            // If fetch fails, fall back to a simple rectangle
-            const fallbackBounds = [
-                [lat - 0.1, lon - 0.1],  // Lower left
-                [lat - 0.1, lon + 0.1],  // Lower right
-                [lat + 0.1, lon + 0.1],  // Upper right
-                [lat + 0.1, lon - 0.1],  // Upper left
-            ];
-            const fallbackPolygon = L.polygon(fallbackBounds, {
-                color: 'blue',
-                weight: 2,
-                fillOpacity: 0.4,
-            }).addTo(map);
-            map.fitBounds(fallbackPolygon.getBounds());
+            
+            // If fetch fails, create a default polygon without detailed data
+            const defaultPolygon = generatePolygon(lat, lon, {});
+            defaultPolygon.addTo(map);
+            map.fitBounds(defaultPolygon.getBounds());
 
-            // Prepare GeoJSON data for download
-            const geojson = fallbackPolygon.toGeoJSON();
+            // Prepare the GeoJSON data for download
+            const geojson = defaultPolygon.toGeoJSON();
             downloadGeoJSON(geojson);
         });
 }
 
-// Function to trigger download of the GeoJSON
+// Function to trigger download of GeoJSON data
 function downloadGeoJSON(geojson) {
     const blob = new Blob([JSON.stringify(geojson)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -93,7 +83,7 @@ function downloadGeoJSON(geojson) {
 
 // Attach event listener to the "Calculate and Fetch Polygon" button
 document.getElementById('polygonBtn').addEventListener('click', function() {
-    const selectedNode = window.selectedNode;  // Assume this is the selected marker's data
+    const selectedNode = window.selectedNode;  // Assuming this is the selected marker's data
     if (selectedNode) {
         createPolygon(selectedNode);
     }
