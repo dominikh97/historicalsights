@@ -87,6 +87,11 @@
             height: 500px;
             flex-grow: 1;  /* Makes the map take up remaining space */
         }
+
+        #nodeDetails {
+            margin-top: 20px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -135,11 +140,15 @@
         <div id="rightPanel">
             <h3>Node Information</h3>
             <p id="nodeDetails">Select a node to view details here.</p>
+
+            <!-- Button for calculating and fetching polygon -->
+            <button id="polygonBtn" style="display:none;">Calculate and Fetch Polygon</button>
         </div>
     </div>
 
     <script src="data.js"></script>
     <script src="map.js"></script>
+    <script src="drawPolygon.js"></script>
 
 </body>
 </html>
