@@ -13,6 +13,10 @@ Object.keys(countryCoordinates).forEach(country => {
     countryDropdown.appendChild(option);
 });
 
+// Set up the right panel button
+const polygonBtn = document.getElementById('polygonBtn');
+const nodeDetails = document.getElementById('nodeDetails');
+
 // Event listener for search button
 document.getElementById('searchBtn').addEventListener('click', async () => {
     const country = countryDropdown.value;
@@ -54,9 +58,12 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
                 `;
                 const marker = L.marker([site.lat, site.lon]).addTo(map).bindPopup(popupContent);
 
-                // Add click event to each marker
+                // Add event listener for each marker
                 marker.on('click', () => {
-                    onNodeSelect(site); // Pass site info to draw polygon
+                    // Display node details and show polygon button
+                    nodeDetails.textContent = `Name: ${site.name || 'Unnamed'}\nType: ${site.historicType}`;
+                    polygonBtn.style.display = 'block'; // Show polygon button
+                    polygonBtn.onclick = () => drawPolygon(site); // Set click handler to fetch polygon
                 });
             }
         });
@@ -72,26 +79,11 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
     }
 });
 
-// Function to handle node selection and trigger polygon drawing
-let selectedNode = null;
-
-function onNodeSelect(node) {
-    selectedNode = node;
-    const nodeDetails = document.getElementById('nodeDetails');
-    nodeDetails.innerHTML = `<strong>Name:</strong> ${node.name || 'Unnamed'}<br><strong>Type:</strong> ${node.historicType}`;
-
-    // Show the polygon button after selecting a node
-    const polygonBtn = document.getElementById('polygonBtn');
-    polygonBtn.style.display = 'inline-block';
+// This is where the polygon drawing logic will happen
+function drawPolygon(site) {
+    // Call the drawPolygon function from drawPolygon.js to calculate and display the polygon
+    console.log('Fetching polygon for:', site.name);
+    // Assuming drawPolygon function is defined in drawPolygon.js and will take care of fetching the polygon data
+    // For example, this could be a function that fetches data from the wiki-text or other source
+    // The polygon is then drawn based on the retrieved data
 }
-
-// Event listener for polygon calculation button
-document.getElementById('polygonBtn').addEventListener('click', async () => {
-    if (!selectedNode) {
-        alert('Please select a node first by clicking on the map marker.');
-        return;
-    }
-
-    // Trigger the polygon drawing logic (using drawPolygon.js)
-    await fetchWikitext(selectedNode.name); // Assuming fetchWikitext is defined in drawPolygon.js
-});
