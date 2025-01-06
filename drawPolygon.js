@@ -1,88 +1,70 @@
-// Global variables (assuming the map is initialized globally from map.js)
-let selectedNode = null;  // Store the selected node
-let polygonLayer = null;  // Store the drawn polygon layer
+// Assuming the function that draws the polygon is already in place
+document.getElementById('calculateAndDownloadBtn').addEventListener('click', async () => {
+    const selectedNode = getSelectedNode(); // Get the selected node (this should be the node selected by the user)
+    
+    if (!selectedNode) {
+        alert("No node selected.");
+        return;
+    }
 
-// Function to handle node selection
-function onNodeSelect(node) {
-    selectedNode = node;
-    const nodeDetails = document.getElementById('nodeDetails');
-    nodeDetails.innerHTML = `<strong>Name:</strong> ${node.name}<br><strong>Type:</strong> ${node.historicType}`;
-
-    // Optionally show the Wikitext here or handle data fetch
-    fetchWikitext(node.name);
-}
-
-// Function to fetch Wikitext or related information for the selected node
-async function fetchWikitext(nodeName) {
     try {
-        // Example Wikitext URL (you could replace this with your actual data)
-        const wikiUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&titles=${encodeURIComponent(nodeName)}&prop=revisions&rvprop=content`;
+        // Fetch polygon data based on the selected node
+        const polygonData = await fetchPolygonFromWikitext(selectedNode);
 
-        // Fetching Wikitext (this is just an example)
-        const response = await fetch(wikiUrl);
-        const data = await response.json();
-        
-        const page = data.query.pages;
-        const pageId = Object.keys(page)[0];
-        const content = page[pageId].revisions[0]['*'];
+        // Draw polygon on the map
+        const polygonLayer = L.geoJSON(polygonData).addTo(map);
 
-        console.log('Wikitext content:', content);
+        // Convert the polygon data into GeoJSON (if it's not already)
+        const geojsonData = polygonLayer.toGeoJSON();
 
-        // Parse Wikitext content for polygon coordinates (if present)
-        const coordinates = extractCoordinatesFromWikitext(content);
-        if (coordinates) {
-            // If coordinates are found, draw the polygon
-            drawPolygon(coordinates);
-        } else {
-            alert('No polygon coordinates found for this node.');
-        }
+        // Trigger download of the GeoJSON file
+        downloadGeoJSON(geojsonData);
+
     } catch (error) {
-        console.error('Error fetching Wikitext:', error);
-        alert('Could not fetch Wikitext data.');
+        console.error('Error calculating polygon:', error);
+        alert('Failed to calculate and fetch polygon.');
     }
+});
+
+// Function to download the GeoJSON file
+function downloadGeoJSON(geojsonData) {
+    const blob = new Blob([JSON.stringify(geojsonData)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'polygon.geojson'; // Set the filename for the downloaded file
+    a.click();
+
+    // Clean up the URL object
+    URL.revokeObjectURL(url);
 }
 
-// Function to extract coordinates from Wikitext (this is a simple example, it might need more specific parsing)
-function extractCoordinatesFromWikitext(wikitext) {
-    // Example: Look for coordinates in the Wikitext (you may want to refine this based on actual structure)
-    const coordinateRegex = /(\d+\.\d+)\s*,\s*(\d+\.\d+)/g; // Matches decimal coordinates
-    const coordinates = [];
-    let match;
-
-    while ((match = coordinateRegex.exec(wikitext)) !== null) {
-        coordinates.push([parseFloat(match[1]), parseFloat(match[2])]);
-    }
-
-    return coordinates.length > 0 ? coordinates : null;
-}
-
-// Function to draw the polygon on the map
-function drawPolygon(coordinates) {
-    // If a polygon is already drawn, remove it
-    if (polygonLayer) {
-        polygonLayer.remove();
-    }
-
-    // Create GeoJSON polygon from coordinates
-    const polygonGeoJSON = {
-        type: 'Feature',
-        geometry: {
-            type: 'Polygon',
-            coordinates: [coordinates],
-        },
+// Simulate a function that fetches the polygon data from Wikitext
+async function fetchPolygonFromWikitext(node) {
+    // You would replace this with the actual logic to fetch polygon data from Wikitext
+    const mockGeoJSON = {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [
+                        [
+                            [-0.1276, 51.5074],
+                            [-0.1426, 51.5074],
+                            [-0.1426, 51.5154],
+                            [-0.1276, 51.5154],
+                            [-0.1276, 51.5074]
+                        ]
+                    ]
+                },
+                "properties": {
+                    "name": "Sample Polygon"
+                }
+            }
+        ]
     };
-
-    // Create a new polygon layer and add it to the map
-    polygonLayer = L.geoJSON(polygonGeoJSON, {
-        style: {
-            color: 'blue',
-            weight: 2,
-            opacity: 0.5,
-            fillColor: 'blue',
-            fillOpacity: 0.2,
-        },
-    }).addTo(map);
-
-    // Optionally, zoom the map to the polygon bounds
-    map.fitBounds(polygonLayer.getBounds());
+    return new Promise((resolve) => setTimeout(() => resolve(mockGeoJSON), 1000)); // Simulate async fetch
 }
