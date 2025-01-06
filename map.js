@@ -1,214 +1,56 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Historic Sites Search</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f9f9f9;
-        }
+// map.js
+const L = require('leaflet'); // Ensure Leaflet is installed
 
-        header {
-            background-color: #2d3e50;
-            color: white;
-            text-align: center;
-            padding: 20px;
-        }
+// Create a map centered on a default location
+const map = L.map('map').setView([51.505, -0.09], 13); // Example: Center at coordinates [51.505, -0.09]
 
-        header h1 {
-            margin: 0;
-            font-size: 36px;
-        }
+// Set up the OpenStreetMap tile layer for the background map
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+}).addTo(map);
 
-        header p {
-            font-size: 18px;
-            margin: 10px 0;
-        }
+// Function to fetch historic sites data
+async function fetchHistoricSites(country, historicType, searchTerm) {
+  try {
+    const response = await fetch(`/api/historic-sites?country=${country}&historicType=${historicType}&q=${searchTerm || ''}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch historic sites data');
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error(error);
+  }
+}
 
-        .container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            max-width: 1200px;
-            margin: 20px auto;
-        }
+// Function to display historic sites on the map
+function displayHistoricSites(historicSites) {
+  historicSites.forEach(site => {
+    const { lat, lon, name, name_en } = site;
+    const popupContent = `
+      <h3>${name}</h3>
+      <p>English Name: ${name_en}</p>
+      <p>Historic Type: ${site.historicType}</p>
+    `;
 
-        #controls {
-            flex: 1;
-            min-width: 280px;
-            background-color: white;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            margin-right: 20px;
-        }
+    // Create a marker for each historic site
+    const marker = L.marker([lat, lon]).addTo(map);
+    marker.bindPopup(popupContent);
+  });
+}
 
-        #controls label {
-            font-size: 16px;
-            margin-bottom: 5px;
-        }
+// Example usage: Fetch and display historic sites for a specific country and type
+// Call the fetch function and pass in parameters like 'Germany' and 'castle'
+async function loadAndDisplaySites() {
+  const country = 'Germany';  // Example country
+  const historicType = 'castle';  // Example type
+  const searchTerm = '';  // Optional search term
 
-        select, button {
-            margin: 10px 0;
-            padding: 10px;
-            width: 100%;
-            border-radius: 5px;
-            border: 1px solid #ddd;
-            font-size: 16px;
-        }
+  const sites = await fetchHistoricSites(country, historicType, searchTerm);
+  if (sites) {
+    displayHistoricSites(sites);
+  }
+}
 
-        button {
-            background-color: #2d3e50;
-            color: white;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background-color: #4f5c6a;
-        }
-
-        #map {
-            flex: 2;
-            height: 500px;
-            border-radius: 8px;
-        }
-
-        /* Responsive layout for smaller screens */
-        @media (max-width: 768px) {
-            .container {
-                flex-direction: column;
-            }
-
-            #controls {
-                margin-right: 0;
-                margin-bottom: 20px;
-            }
-
-            #map {
-                height: 400px;
-            }
-        }
-    </style>
-</head>
-<body>
-
-    <header>
-        <h1>Historic Sites Search</h1>
-        <p>Search for historic sites by country and historic type on the map.</p>
-    </header>
-
-    <div class="container">
-        <div id="controls">
-            <label for="country">Country:</label>
-            <select id="country"></select>
-
-            <label for="historicType">Historic Type:</label>
-            <select id="historicType">
-                <option value="aqueduct">Aqueduct</option>
-                <option value="archaeological_site">Archaeological Site</option>
-                <option value="battlefield">Battlefield</option>
-                <option value="bomb_crater">Bomb Crater</option>
-                <option value="building">Building</option>
-                <option value="castle">Castle</option>
-                <option value="church">Church</option>
-                <option value="district">District</option>
-                <option value="farm">Farm</option>
-                <option value="fort">Fort</option>
-                <option value="house">House</option>
-                <option value="manor">Manor</option>
-                <option value="memorial">Memorial</option>
-                <option value="mine">Mine</option>
-                <option value="monastery">Monastery</option>
-                <option value="monument">Monument</option>
-                <option value="mosque">Mosque</option>
-                <option value="ruins">Ruins</option>
-                <option value="temple">Temple</option>
-                <option value="tomb">Tomb</option>
-                <option value="tower">Tower</option>
-            </select>
-
-            <button id="searchBtn">Search</button>
-        </div>
-
-        <div id="map"></div>
-    </div>
-
-    <script src="data.js"></script>
-    <script>
-        // Initialize map
-        const map = L.map('map').setView([20, 0], 2);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-        }).addTo(map);
-
-        // Populate country dropdown from data.js
-        const countryDropdown = document.getElementById('country');
-        Object.keys(countryCoordinates).forEach(country => {
-            const option = document.createElement('option');
-            option.value = country;
-            option.textContent = country;
-            countryDropdown.appendChild(option);
-        });
-
-        // Search button click handler
-        document.getElementById('searchBtn').addEventListener('click', async () => {
-            const country = countryDropdown.value;
-            const historicType = document.getElementById('historicType').value;
-
-            if (!country || !historicType) {
-                alert('Please select both country and historic type.');
-                return;
-            }
-
-            try {
-                const response = await fetch(`http://localhost:5000/api/historic-sites?country=${encodeURIComponent(country)}&historicType=${encodeURIComponent(historicType)}`);
-                if (!response.ok) {
-                    throw new Error(`Error: ${response.statusText}`);
-                }
-
-                const data = await response.json();
-                if (data.length === 0) {
-                    alert(`No results found for ${historicType} in ${country}.`);
-                    return;
-                }
-
-                // Clear existing markers
-                map.eachLayer(layer => {
-                    if (layer instanceof L.Marker) {
-                        map.removeLayer(layer);
-                    }
-                });
-
-                // Add markers for each result
-                data.forEach(site => {
-                    if (site.lat && site.lon) {
-                        const popupContent = `
-                            <strong>${site.name || 'Unnamed'}</strong><br>
-                            English Name: ${site.name_en || 'N/A'}<br>
-                            Type: ${site.historicType}<br>
-                            <a href="https://www.openstreetmap.org/${site.type}/${site.id}" target="_blank">View on OSM</a>
-                        `;
-                        L.marker([site.lat, site.lon]).addTo(map).bindPopup(popupContent);
-                    }
-                });
-
-                // Zoom to first result
-                const firstResult = data.find(site => site.lat && site.lon);
-                if (firstResult) {
-                    map.setView([firstResult.lat, firstResult.lon], 10);
-                }
-            } catch (error) {
-                console.error('Error fetching data:', error);
-                alert('Failed to fetch historic sites. Please try again later.');
-            }
-        });
-    </script>
-
-</body>
-</html>
+// Call the function to load and display sites
+loadAndDisplaySites();
