@@ -8,13 +8,13 @@ const path = require('path');
 const app = express();
 const overpassUrl = "https://overpass-api.de/api/interpreter";
 
-// Enable CORS
-app.use(cors({ origin: 'https://historicalsights.fly.dev' }));
+// Enable CORS for both local development and the public domain (you can also adjust this for other environments as needed)
+app.use(cors({ origin: ['http://localhost:5000', 'http://localhost:8080', 'https://historicalsights.fly.dev'] }));
 
-// Serve static files from 'public'
+// Serve static files from 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Serve data.js explicitly
+// Serve data.js explicitly (this is used to ensure it's accessible on the front-end)
 app.get('/data.js', (req, res) => {
     res.sendFile(path.join(__dirname, 'data.js'));
 });
@@ -95,8 +95,8 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Start server
-const PORT = process.env.PORT || 8080;
+// Start server on a specified port
+const PORT = process.env.PORT || 5000;  // Default to 5000 for local testing
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://0.0.0.0:${PORT}/`);
     logInfo(`Server listening on ${PORT}`);
