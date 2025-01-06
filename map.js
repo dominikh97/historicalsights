@@ -27,7 +27,7 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
 
     try {
         // Fetch data from the backend API
-        const response = await fetch(`http://localhost:5000/api/historic-sites?country=${encodeURIComponent(country)}&historicType=${encodeURIComponent(historicType)}`);
+        const response = await fetch(`http://localhost:5000/api/historic-sites?country=${encodeURIComponent(country)}&historicType=${encodeURIComponent(historicType)}`); 
         if (!response.ok) {
             throw new Error(`Error: ${response.statusText}`);
         }
@@ -54,7 +54,12 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
                     Type: ${site.historicType}<br>
                     <a href="https://www.openstreetmap.org/${site.type}/${site.id}" target="_blank">View on OSM</a>
                 `;
-                L.marker([site.lat, site.lon]).addTo(map).bindPopup(popupContent);
+                const marker = L.marker([site.lat, site.lon]).addTo(map).bindPopup(popupContent);
+
+                // Add click event to each marker
+                marker.on('click', () => {
+                    onNodeSelect(site); // Pass site info to draw polygon
+                });
             }
         });
 
@@ -67,16 +72,16 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
         console.error('Error fetching data:', error);
         alert('Failed to fetch historic sites. Please try again later.');
     }
-
-    // Assuming you have an array of markers representing historic sites
-    const markers = [];  // Replace with actual markers or nodes from your backend
-
-    markers.forEach(marker => {
-    marker.on('click', () => {
-        onNodeSelect(marker.options.node); // Pass node info on click
-    });
-    });
-
-    <script src="drawPolygon.js"></script>
-
 });
+
+// Function to handle node selection and trigger polygon drawing
+function onNodeSelect(node) {
+    console.log('Selected node:', node);
+
+    // Update the panel with selected node information (if necessary)
+    const nodeDetails = document.getElementById('nodeDetails');
+    nodeDetails.innerHTML = `<strong>Name:</strong> ${node.name || 'Unnamed'}<br><strong>Type:</strong> ${node.historicType}`;
+
+    // Fetch and draw the polygon based on the Wikitext or relevant data
+    fetchWikitext(node.name); // Call the function from drawPolygon.js that will use Wikitext to draw the polygon
+}
