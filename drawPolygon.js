@@ -14,7 +14,31 @@ async function fetchWikipediaData(title) {
 
         return extract || "No description available for this site."; // Handle missing description
     } catch (error) {
-        console.error('Error fetching Wikipedia data:', error);
-        return "Error fetching data from Wikipedia.";
+        console.error("Error fetching Wikipedia data:", error);
+        return "Error fetching Wikipedia data.";  // Fallback error message
     }
 }
+
+// Function to display the Wikipedia content on the right panel
+async function displayWikipediaContent(node) {
+    // Assuming the node has a 'name' property or something else to fetch Wikipedia data
+    const wikiTitle = node.name;  // Replace 'name' with the relevant property of your node
+
+    const wikiIntro = await fetchWikipediaData(wikiTitle);
+
+    // Update the right panel with the Wikipedia intro text
+    const nodeDetailsElement = document.getElementById('nodeDetails');
+    nodeDetailsElement.innerHTML = `
+        <strong>${wikiTitle}</strong><br><br>
+        ${wikiIntro}
+    `;
+}
+
+// Assuming you have an event or logic where the node is selected
+// Example: This should be triggered when a marker is clicked or when a node is selected
+function onNodeSelect(node) {
+    displayWikipediaContent(node);
+}
+
+// Example: if you have a marker with an event listener
+// marker.on('click', () => onNodeSelect(marker));
