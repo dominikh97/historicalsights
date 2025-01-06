@@ -1,5 +1,3 @@
-// map.js
-
 // Initialize map
 const map = L.map('map').setView([20, 0], 2);  // Default to global view
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -27,7 +25,7 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
 
     try {
         // Fetch data from the backend API
-        const response = await fetch(`http://localhost:5000/api/historic-sites?country=${encodeURIComponent(country)}&historicType=${encodeURIComponent(historicType)}`); 
+        const response = await fetch(`http://localhost:5000/api/historic-sites?country=${encodeURIComponent(country)}&historicType=${encodeURIComponent(historicType)}`);
         if (!response.ok) {
             throw new Error(`Error: ${response.statusText}`);
         }
@@ -75,13 +73,25 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
 });
 
 // Function to handle node selection and trigger polygon drawing
-function onNodeSelect(node) {
-    console.log('Selected node:', node);
+let selectedNode = null;
 
-    // Update the panel with selected node information (if necessary)
+function onNodeSelect(node) {
+    selectedNode = node;
     const nodeDetails = document.getElementById('nodeDetails');
     nodeDetails.innerHTML = `<strong>Name:</strong> ${node.name || 'Unnamed'}<br><strong>Type:</strong> ${node.historicType}`;
 
-    // Fetch and draw the polygon based on the Wikitext or relevant data
-    fetchWikitext(node.name); // Call the function from drawPolygon.js that will use Wikitext to draw the polygon
+    // Show the polygon button after selecting a node
+    const polygonBtn = document.getElementById('polygonBtn');
+    polygonBtn.style.display = 'inline-block';
 }
+
+// Event listener for polygon calculation button
+document.getElementById('polygonBtn').addEventListener('click', async () => {
+    if (!selectedNode) {
+        alert('Please select a node first by clicking on the map marker.');
+        return;
+    }
+
+    // Trigger the polygon drawing logic (using drawPolygon.js)
+    await fetchWikitext(selectedNode.name); // Assuming fetchWikitext is defined in drawPolygon.js
+});
