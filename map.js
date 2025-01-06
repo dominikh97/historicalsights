@@ -68,6 +68,15 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
         alert('Failed to fetch historic sites. Please try again later.');
     }
 
+    // Assuming you have an array of markers representing historic sites
+    const markers = [];  // Replace with actual markers or nodes from your backend
+
+    markers.forEach(marker => {
+    marker.on('click', () => {
+        onNodeSelect(marker.options.node); // Pass node info on click
+    });
+    });
+
     <script src="drawPolygon.js"></script>
 
 });
