@@ -60,7 +60,33 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
                 // Attach click event to set the selected marker
                 marker.on('click', () => {
                     selectedNode = site;
-                    document.getElementById('nodeDetails').textContent = `Selected: ${site.name || 'Unnamed'}`;
+
+                    // Construct search term as "site name + country"
+                    const searchTerm = `${site.name || 'Unnamed'} ${country}`;
+
+                    // Store the string in localStorage
+                    localStorage.setItem('selectedLocation', searchTerm);
+
+                    // Example: Send the string to the server (Python backend)
+                    fetch('http://localhost:5000/api/selected-location', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ selectedLocation: searchTerm }),
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to send selected location to the server.');
+                        }
+                        console.log('Location sent to the server successfully.');
+                    })
+                    .catch(error => {
+                        console.error('Error sending location:', error);
+                    });
+
+                    // Update the UI
+                    document.getElementById('nodeDetails').textContent = `Selected: ${searchTerm}`;
                     document.getElementById('factsheetBtn').style.display = 'block';  // Show the button to generate factsheet
                 });
             }
