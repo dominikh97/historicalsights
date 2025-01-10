@@ -4,21 +4,17 @@ const fetch = globalThis.fetch || require('node-fetch');
 const { countryCoordinates } = require('./data');
 const { logInfo, logError } = require('./logger');
 const path = require('path');
-const fs = require('fs');
 
 const app = express();
 const overpassUrl = "https://overpass-api.de/api/interpreter";
 
-// Enable CORS for both local development and the public domain
+// Enable CORS for both local development and the public domain (you can also adjust this for other environments as needed)
 app.use(cors({ origin: ['http://localhost:5000', 'http://localhost:8080', 'https://historicalsights.fly.dev'] }));
-
-// Middleware to parse JSON requests
-app.use(express.json());
 
 // Serve static files from 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Serve data.js explicitly
+// Serve data.js explicitly (this is used to ensure it's accessible on the front-end)
 app.get('/data.js', (req, res) => {
     res.sendFile(path.join(__dirname, 'data.js'));
 });
@@ -41,10 +37,10 @@ async function fetchOverpassData(query, retries = 5, delay = 1000) {
             await new Promise(resolve => setTimeout(resolve, delay));
             return fetchOverpassData(query, retries - 1, delay * 2);
         }
-        if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+        if (!response.ok) throw new Error(HTTP error: ${response.status});
         return await response.json();
     } catch (error) {
-        logError(`Overpass API error: ${error.message}`);
+        logError(Overpass API error: ${error.message});
         throw error;
     }
 }
@@ -63,16 +59,16 @@ app.get('/api/historic-sites', async (req, res) => {
         return res.status(400).json({ error: 'Both country and historicType are required.' });
     }
     if (!countryCoordinates[country]) {
-        return res.status(404).json({ error: `Country '${country}' not found.` });
+        return res.status(404).json({ error: Country '${country}' not found. });
     }
 
     try {
-        logInfo(`Fetching historic sites for country: ${country}, type: ${historicType}, term: ${searchTerm || 'N/A'}`);
+        logInfo(Fetching historic sites for country: ${country}, type: ${historicType}, term: ${searchTerm || 'N/A'});
         const boundingBox = countryCoordinates[country];
 
-        let query = `[out:json][timeout:20];node["historic"="${historicType}"](${boundingBox});out body;`;
+        let query = [out:json][timeout:20];node["historic"="${historicType}"](${boundingBox});out body;;
         if (searchTerm) {
-            query = `[out:json][timeout:20];node["historic"="${historicType}"]["name"~"${searchTerm}",i](${boundingBox});out body;`;
+            query = [out:json][timeout:20];node["historic"="${historicType}"]["name"~"${searchTerm}",i](${boundingBox});out body;;
         }
 
         const data = await fetchOverpassData(query);
@@ -86,42 +82,22 @@ app.get('/api/historic-sites', async (req, res) => {
             historicType: e.tags.historic,
         }));
 
-        logInfo(`Found ${results.length} results.`);
+        logInfo(Found ${results.length} results.);
         res.json(results);
     } catch (error) {
-        logError(`Error fetching historic sites: ${error.message}`);
+        logError(Error fetching historic sites: ${error.message});
         res.status(500).json({ error: 'Error fetching data', details: error.message });
     }
 });
 
-// Endpoint to save selected location
-app.post('/api/save-location', (req, res) => {
-    const { location } = req.body;
-
-    if (!location) {
-        return res.status(400).json({ error: 'Location data is required.' });
-    }
-
-    try {
-        const filePath = path.join(__dirname, 'selectedLocation.txt');
-        fs.writeFileSync(filePath, location, 'utf-8');
-
-        logInfo(`Location saved: ${location}`);
-        res.json({ message: 'Location saved successfully.' });
-    } catch (error) {
-        logError(`Error saving location: ${error.message}`);
-        res.status(500).json({ error: 'Failed to save location.' });
-    }
-});
-
-// Fallback for undefined routes
+// Fallback for undefined routes (e.g., to serve SPA index.html)
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Start server
-const PORT = process.env.PORT || 5000;
+// Start server on a specified port
+const PORT = process.env.PORT || 5000;  // Default to 5000 for local testing
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://0.0.0.0:${PORT}/`);
-    logInfo(`Server listening on ${PORT}`);
+    console.log(Server running on http://0.0.0.0:${PORT}/);
+    logInfo(Server listening on ${PORT});
 });
