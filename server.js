@@ -4,17 +4,21 @@ const fetch = globalThis.fetch || require('node-fetch');
 const { countryCoordinates } = require('./data');
 const { logInfo, logError } = require('./logger');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const overpassUrl = "https://overpass-api.de/api/interpreter";
 
-// Enable CORS for both local development and the public domain (you can also adjust this for other environments as needed)
+// Enable CORS for both local development and the public domain
 app.use(cors({ origin: ['http://localhost:5000', 'http://localhost:8080', 'https://historicalsights.fly.dev'] }));
+
+// Middleware to parse JSON requests
+app.use(express.json());
 
 // Serve static files from 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Serve data.js explicitly (this is used to ensure it's accessible on the front-end)
+// Serve data.js explicitly
 app.get('/data.js', (req, res) => {
     res.sendFile(path.join(__dirname, 'data.js'));
 });
@@ -90,13 +94,33 @@ app.get('/api/historic-sites', async (req, res) => {
     }
 });
 
-// Fallback for undefined routes (e.g., to serve SPA index.html)
+// Endpoint to save selected location
+app.post('/api/save-location', (req, res) => {
+    const { location } = req.body;
+
+    if (!location) {
+        return res.status(400).json({ error: 'Location data is required.' });
+    }
+
+    try {
+        const filePath = path.join(__dirname, 'selectedLocation.txt');
+        fs.writeFileSync(filePath, location, 'utf-8');
+
+        logInfo(`Location saved: ${location}`);
+        res.json({ message: 'Location saved successfully.' });
+    } catch (error) {
+        logError(`Error saving location: ${error.message}`);
+        res.status(500).json({ error: 'Failed to save location.' });
+    }
+});
+
+// Fallback for undefined routes
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Start server on a specified port
-const PORT = process.env.PORT || 5000;  // Default to 5000 for local testing
+// Start server
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://0.0.0.0:${PORT}/`);
     logInfo(`Server listening on ${PORT}`);
