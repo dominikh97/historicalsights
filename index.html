@@ -1,163 +1,142 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Historic Sites Search</title>
-    
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
-    
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f9f9f9;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Historic Sites Search</title>
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"/>
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
 
-        header {
-            background-color: #2d3e50;
-            color: white;
-            text-align: center;
-            padding: 20px;
-        }
-
-        header h1 {
-            margin: 0;
-            font-size: 36px;
-        }
-
-        header p {
-            font-size: 18px;
-            margin: 10px 0;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        #controls {
-            background-color: white;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            width: 300px;
-        }
-
-        #controls label {
-            font-size: 16px;
-            margin-bottom: 5px;
-            display: block;
-        }
-
-        select, button {
-            margin: 10px 0;
-            padding: 10px;
-            width: 100%;
-            border-radius: 5px;
-            border: 1px solid #ddd;
-            font-size: 16px;
-        }
-
-        button {
-            background-color: #2d3e50;
-            color: white;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background-color: #4f5c6a;
-        }
-
-        /* Map container */
-        #map {
-            height: 500px;
-            flex-grow: 1;  /* Makes the map take up remaining space */
-            margin-left: 20px;
-        }
-
-        /* Selected site info panel */
-        #selectedInfo {
-            margin-top: 20px;
-            padding: 10px;
-            background-color: #fff;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-        }
-
-        #selectedInfo h3 {
-            margin-top: 0;
-        }
-
-        #selectedSiteName,
-        #selectedCountry {
-            margin: 5px 0;
-        }
-    </style>
+  <style>
+    /* Your styles here (unchanged) */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f9f9f9;
+    }
+    header {
+      background-color: #2d3e50;
+      color: white;
+      text-align: center;
+      padding: 20px;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 36px;
+    }
+    header p {
+      font-size: 18px;
+      margin: 10px 0;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+    }
+    #controls {
+      background-color: white;
+      padding: 20px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      width: 300px;
+    }
+    #controls label {
+      font-size: 16px;
+      margin-bottom: 5px;
+      display: block;
+    }
+    select, button {
+      margin: 10px 0;
+      padding: 10px;
+      width: 100%;
+      border-radius: 5px;
+      border: 1px solid #ddd;
+      font-size: 16px;
+    }
+    button {
+      background-color: #2d3e50;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #4f5c6a;
+    }
+    #map {
+      height: 500px;
+      flex-grow: 1;  /* map takes remaining space */
+      margin-left: 20px;
+    }
+    #selectedInfo {
+      margin-top: 20px;
+      padding: 10px;
+      background-color: #fff;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+    }
+    #selectedInfo h3 {
+      margin-top: 0;
+    }
+    /* .wiki-summary or other classes can be styled here if needed */
+  </style>
 </head>
 <body>
+  <header>
+    <h1>Historic Sites Search</h1>
+    <p>Search for historic sites by country and historic type on the map.</p>
+  </header>
 
-    <header>
-        <h1>Historic Sites Search</h1>
-        <p>Search for historic sites by country and historic type on the map.</p>
-    </header>
+  <div class="container">
+    <!-- Controls Panel -->
+    <div id="controls">
+      <label for="country">Country:</label>
+      <select id="country"></select>
 
-    <div class="container">
-        <!-- Controls Panel -->
-        <div id="controls">
-            <label for="country">Country:</label>
-            <select id="country"></select>
+      <label for="historicType">Historic Type:</label>
+      <select id="historicType">
+        <option value="aqueduct">Aqueduct</option>
+        <option value="archaeological_site">Archaeological Site</option>
+        <option value="battlefield">Battlefield</option>
+        <option value="bomb_crater">Bomb Crater</option>
+        <option value="building">Building</option>
+        <option value="castle">Castle</option>
+        <option value="church">Church</option>
+        <option value="district">District</option>
+        <option value="farm">Farm</option>
+        <option value="fort">Fort</option>
+        <option value="house">House</option>
+        <option value="manor">Manor</option>
+        <option value="memorial">Memorial</option>
+        <option value="mine">Mine</option>
+        <option value="monastery">Monastery</option>
+        <option value="monument">Monument</option>
+        <option value="mosque">Mosque</option>
+        <option value="ruins">Ruins</option>
+        <option value="temple">Temple</option>
+        <option value="tomb">Tomb</option>
+        <option value="tower">Tower</option>
+      </select>
 
-            <label for="historicType">Historic Type:</label>
-            <select id="historicType">
-                <option value="aqueduct">Aqueduct</option>
-                <option value="archaeological_site">Archaeological Site</option>
-                <option value="battlefield">Battlefield</option>
-                <option value="bomb_crater">Bomb Crater</option>
-                <option value="building">Building</option>
-                <option value="castle">Castle</option>
-                <option value="church">Church</option>
-                <option value="district">District</option>
-                <option value="farm">Farm</option>
-                <option value="fort">Fort</option>
-                <option value="house">House</option>
-                <option value="manor">Manor</option>
-                <option value="memorial">Memorial</option>
-                <option value="mine">Mine</option>
-                <option value="monastery">Monastery</option>
-                <option value="monument">Monument</option>
-                <option value="mosque">Mosque</option>
-                <option value="ruins">Ruins</option>
-                <option value="temple">Temple</option>
-                <option value="tomb">Tomb</option>
-                <option value="tower">Tower</option>
-            </select>
+      <button id="searchBtn">Search</button>
 
-            <button id="searchBtn">Search</button>
-
-            <!-- Selected Site Panel with Wikipedia Summary -->
-            <div id="selectedInfo">
-                <!-- Display selected site name/country -->
-                <h3 id="selectedSiteName">Site Name:</h3>
-                <h4 id="selectedCountry">Country:</h4>
-                <!-- Wikipedia summary content will be placed here by map.js -->
-            </div>
-        </div>
-
-        <!-- Map Container -->
-        <div id="map"></div>
+      <!-- Selected Site Panel with Wikipedia Summary -->
+      <div id="selectedInfo">
+        <h3 id="selectedSiteName">Site Name:</h3>
+        <h4 id="selectedCountry">Country:</h4>
+        <!-- Wikipedia summary gets appended here by map.js -->
+      </div>
     </div>
 
-    <!-- Load your data definitions -->
-    <script src="data.js"></script>
-    <!-- Load your map logic last so DOM elements are ready -->
-    <script src="map.js"></script>
+    <!-- Map Container -->
+    <div id="map"></div>
+  </div>
+
+  <!-- Load the combined map.js (which also contains countryCoordinates) -->
+  <script src="map.js"></script>
 </body>
 </html>
