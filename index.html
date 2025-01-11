@@ -152,30 +152,26 @@
     <script src="map.js"></script>
 
     <script>
+    // Function to fetch the Wikipedia summary for the selected site
     async function fetchWikipediaSummary(siteName) {
         try {
-            // Use Wikipedia's REST API to get a summary for the site
             const response = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(siteName)}`);
-
             if (!response.ok) {
-                throw new Error(`Failed to fetch summary for ${siteName}`);
+                throw new Error(`Failed to fetch summary for "${siteName}"`);
             }
-
             const data = await response.json();
+            const infoContainer = document.getElementById('selectedInfo');
 
             if (data.type === "standard") {
-                // Display the summary in the #selectedInfo container
-                const infoContainer = document.getElementById('selectedInfo');
                 infoContainer.innerHTML = `
                     <h2>${data.title}</h2>
                     <p>${data.extract}</p>
                     <a href="${data.content_urls.desktop.page}" target="_blank">Read more on Wikipedia</a>
                 `;
             } else {
-                throw new Error(`No summary found for ${siteName}`);
+                throw new Error(`No summary found for "${siteName}"`);
             }
         } catch (error) {
-            // Handle errors and display a fallback message
             const infoContainer = document.getElementById('selectedInfo');
             infoContainer.innerHTML = `
                 <h2>Site Information</h2>
@@ -185,17 +181,40 @@
         }
     }
 
-    // Simulating a site selection and fetching its details
-    document.getElementById('searchBtn').addEventListener('click', () => {
-        // Example: Replace this with the actual site name when a site is selected
-        const selectedSiteName = document.getElementById('country').value || "Example Site";
+    // Add an event listener for map clicks to update the selected site info
+    function setupMapClickListener(map) {
+        map.on('click', (e) => {
+            // Replace with how your map returns site data on click
+            const clickedSite = getSiteDetailsFromMap(e.latlng); // Custom function to extract site details
+            if (clickedSite && clickedSite.name) {
+                // Update the site name and country in the info panel
+                document.getElementById('selectedSiteName').textContent = `Site Name: ${clickedSite.name}`;
+                document.getElementById('selectedCountry').textContent = `Country: ${clickedSite.country || 'N/A'}`;
 
-        // Display the site name in #selectedInfo
-        document.getElementById('selectedSiteName').textContent = `Site Name: ${selectedSiteName}`;
-        document.getElementById('selectedCountry').textContent = `Country: Selected Country`;
+                // Fetch Wikipedia summary for the clicked site
+                fetchWikipediaSummary(clickedSite.name);
+            }
+        });
+    }
 
-        // Fetch the Wikipedia summary for the site
-        fetchWikipediaSummary(selectedSiteName);
+    // Function to get site details from map (mock function, replace with actual logic)
+    function getSiteDetailsFromMap(latlng) {
+        // Example site data; replace with your actual data retrieval logic
+        return {
+            name: "Great Wall of China", // This should come from your map logic
+            country: "China",
+        };
+    }
+
+    // Simulate initializing the map and setting up the click listener
+    document.addEventListener('DOMContentLoaded', () => {
+        const map = L.map('map').setView([51.505, -0.09], 13); // Example map initialization
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+        }).addTo(map);
+
+        // Call the function to set up the map click listener
+        setupMapClickListener(map);
     });
 </script>
 
