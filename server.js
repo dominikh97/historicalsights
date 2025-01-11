@@ -1,9 +1,6 @@
-// server.js
-
 const express = require('express');
 const cors = require('cors');
-// If you're using Node v18 or above, fetch is built-in. Otherwise uncomment the require statement below:
-// const fetch = globalThis.fetch || require('node-fetch');
+const fetch = globalThis.fetch || require('node-fetch');
 const { countryCoordinates } = require('./data');
 const { logInfo, logError } = require('./logger');
 const path = require('path');
@@ -11,14 +8,8 @@ const path = require('path');
 const app = express();
 const overpassUrl = "https://overpass-api.de/api/interpreter";
 
-// Enable CORS for both local development and the public domain
-app.use(cors({
-    origin: [
-        'http://localhost:5000',
-        'http://localhost:8080',
-        'https://historicalsights.fly.dev'
-    ]
-}));
+// Enable CORS for both local development and the public domain (you can also adjust this for other environments as needed)
+app.use(cors({ origin: ['http://localhost:5000', 'http://localhost:8080', 'https://historicalsights.fly.dev'] }));
 
 // Middleware to parse JSON
 app.use(express.json());
@@ -48,7 +39,7 @@ app.post('/api/selected-node', (req, res) => {
     }
 
     selectedNode = { country, name };
-    logInfo(`Selected node updated: ${JSON.stringify(selectedNode)}`);
+    logInfo(Selected node updated: ${JSON.stringify(selectedNode)});
     res.json({ success: true, selectedNode });
 });
 
@@ -70,17 +61,14 @@ async function fetchOverpassData(query, retries = 5, delay = 1000) {
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         });
         if (response.status === 429 && retries > 0) {
-            // Rate-limited, retry
             logError('Rate limit hit. Retrying...');
             await new Promise(resolve => setTimeout(resolve, delay));
             return fetchOverpassData(query, retries - 1, delay * 2);
         }
-        if (!response.ok) {
-            throw new Error(`HTTP error: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(HTTP error: ${response.status});
         return await response.json();
     } catch (error) {
-        logError(`Overpass API error: ${error.message}`);
+        logError(Overpass API error: ${error.message});
         throw error;
     }
 }
@@ -99,23 +87,19 @@ app.get('/api/historic-sites', async (req, res) => {
         return res.status(400).json({ error: 'Both country and historicType are required.' });
     }
     if (!countryCoordinates[country]) {
-        return res.status(404).json({ error: `Country '${country}' not found.` });
+        return res.status(404).json({ error: Country '${country}' not found. });
     }
 
     try {
-        logInfo(`Fetching historic sites for country: ${country}, type: ${historicType}, term: ${searchTerm || 'N/A'}`);
+        logInfo(Fetching historic sites for country: ${country}, type: ${historicType}, term: ${searchTerm || 'N/A'});
         const boundingBox = countryCoordinates[country];
 
-        // Construct Overpass query
-        let query = `[out:json][timeout:20];node["historic"="${historicType}"](${boundingBox});out body;`;
+        let query = [out:json][timeout:20];node["historic"="${historicType}"](${boundingBox});out body;;
         if (searchTerm) {
-            query = `[out:json][timeout:20];node["historic"="${historicType}"]["name"~"${searchTerm}",i](${boundingBox});out body;`;
+            query = [out:json][timeout:20];node["historic"="${historicType}"]["name"~"${searchTerm}",i](${boundingBox});out body;;
         }
 
-        // Fetch data from Overpass
         const data = await fetchOverpassData(query);
-
-        // Map Overpass elements to a simpler structure
         const results = data.elements.map(e => ({
             id: e.id,
             type: 'node',
@@ -126,10 +110,10 @@ app.get('/api/historic-sites', async (req, res) => {
             historicType: e.tags.historic,
         }));
 
-        logInfo(`Found ${results.length} results.`);
+        logInfo(Found ${results.length} results.);
         res.json(results);
     } catch (error) {
-        logError(`Error fetching historic sites: ${error.message}`);
+        logError(Error fetching historic sites: ${error.message});
         res.status(500).json({ error: 'Error fetching data', details: error.message });
     }
 });
@@ -142,6 +126,6 @@ app.get('*', (req, res) => {
 // Start server on a specified port
 const PORT = process.env.PORT || 5000;  // Default to 5000 for local testing
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://0.0.0.0:${PORT}/`);
-    logInfo(`Server listening on ${PORT}`);
+    console.log(Server running on http://0.0.0.0:${PORT}/);
+    logInfo(Server listening on ${PORT});
 });
