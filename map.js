@@ -1,5 +1,3 @@
-// map.js
-
 // Initialize map
 const map = L.map('map').setView([20, 0], 2);  // Default to global view
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
