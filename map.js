@@ -68,3 +68,34 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
         alert('Failed to fetch historic sites. Please try again later.');
     }
 });
+
+// Modify the code where markers are added in the search button's event listener
+data.forEach(site => {
+    if (site.lat && site.lon) {
+        const popupContent = `
+            <strong>${site.name || 'Unnamed'}</strong><br>
+            English Name: ${site.name_en || 'N/A'}<br>
+            Type: ${site.historicType}<br>
+            <a href="https://www.openstreetmap.org/${site.type}/${site.id}" target="_blank">View on OSM</a>
+        `;
+        const marker = L.marker([site.lat, site.lon]).addTo(map).bindPopup(popupContent);
+
+        // Add click event to store the selected node
+        marker.on('click', async () => {
+            try {
+                const response = await fetch('http://localhost:5000/api/selected-node', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ node: `Node ID: ${site.id}, Name: ${site.name || 'Unnamed'}` }),
+                });
+                if (!response.ok) {
+                    throw new Error('Failed to update selected node');
+                }
+                console.log('Selected node updated successfully');
+            } catch (error) {
+                console.error('Error updating selected node:', error);
+            }
+        });
+    }
+});
+
