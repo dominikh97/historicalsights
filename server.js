@@ -1,6 +1,9 @@
+// server.js
+
 const express = require('express');
 const cors = require('cors');
-const fetch = globalThis.fetch || require('node-fetch');
+// If you're using Node v18 or above, fetch is built-in. Otherwise uncomment the require statement below:
+// const fetch = globalThis.fetch || require('node-fetch');
 const { countryCoordinates } = require('./data');
 const { logInfo, logError } = require('./logger');
 const path = require('path');
@@ -8,8 +11,14 @@ const path = require('path');
 const app = express();
 const overpassUrl = "https://overpass-api.de/api/interpreter";
 
-// Enable CORS for both local development and the public domain (you can also adjust this for other environments as needed)
-app.use(cors({ origin: ['http://localhost:5000', 'http://localhost:8080', 'https://historicalsights.fly.dev'] }));
+// Enable CORS for both local development and the public domain
+app.use(cors({
+    origin: [
+        'http://localhost:5000',
+        'http://localhost:8080',
+        'https://historicalsights.fly.dev'
+    ]
+}));
 
 // Middleware to parse JSON
 app.use(express.json());
@@ -61,11 +70,14 @@ async function fetchOverpassData(query, retries = 5, delay = 1000) {
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         });
         if (response.status === 429 && retries > 0) {
+            // Rate-limited, retry
             logError('Rate limit hit. Retrying...');
             await new Promise(resolve => setTimeout(resolve, delay));
             return fetchOverpassData(query, retries - 1, delay * 2);
         }
-        if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error: ${response.status}`);
+        }
         return await response.json();
     } catch (error) {
         logError(`Overpass API error: ${error.message}`);
@@ -94,12 +106,16 @@ app.get('/api/historic-sites', async (req, res) => {
         logInfo(`Fetching historic sites for country: ${country}, type: ${historicType}, term: ${searchTerm || 'N/A'}`);
         const boundingBox = countryCoordinates[country];
 
+        // Construct Overpass query
         let query = `[out:json][timeout:20];node["historic"="${historicType}"](${boundingBox});out body;`;
         if (searchTerm) {
             query = `[out:json][timeout:20];node["historic"="${historicType}"]["name"~"${searchTerm}",i](${boundingBox});out body;`;
         }
 
+        // Fetch data from Overpass
         const data = await fetchOverpassData(query);
+
+        // Map Overpass elements to a simpler structure
         const results = data.elements.map(e => ({
             id: e.id,
             type: 'node',
