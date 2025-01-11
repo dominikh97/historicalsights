@@ -78,22 +78,19 @@
         }
 
         #selectedInfo {
-            background-color: white;
-            padding: 20px;
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #fff;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
-            width: 300px;
-            margin-top: 20px;
         }
 
-        #selectedInfo h2 {
-            font-size: 18px;
-            margin-bottom: 10px;
+        #selectedInfo h3 {
+            margin-top: 0;
         }
 
-        #selectedInfo p {
-            font-size: 16px;
-            margin: 5px 0;
+        #selectedInfoSummary {
+            margin-top: 10px;
         }
     </style>
 </head>
@@ -105,6 +102,7 @@
     </header>
 
     <div class="container">
+        <!-- Controls Panel -->
         <div id="controls">
             <label for="country">Country:</label>
             <select id="country"></select>
@@ -135,16 +133,19 @@
             </select>
 
             <button id="searchBtn">Search</button>
+
+            <!-- Selected Site Panel with Wikipedia Summary -->
+            <div id="selectedInfo">
+                <h3 id="selectedSiteName">Site Name: </h3>
+                <h4 id="selectedCountry">Country: </h4>
+                <div id="selectedInfoSummary">
+                    <!-- Wikipedia Summary will be appended here -->
+                </div>
+            </div>
         </div>
 
+        <!-- Map Container -->
         <div id="map"></div>
-
-        <!-- Panel to display selected site information -->
-        <div id="selectedInfo">
-            <h2>Selected Site</h2>
-            <p id="selectedSiteName">Site Name: N/A</p>
-            <p id="selectedCountry">Country: N/A</p>
-        </div>
     </div>
 
     <script src="data.js"></script>
