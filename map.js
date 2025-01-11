@@ -51,8 +51,33 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
                     English Name: ${site.name_en || 'N/A'}<br>
                     Type: ${site.historicType}<br>
                     <a href="https://www.openstreetmap.org/${site.type}/${site.id}" target="_blank">View on OSM</a>
+                    <button id="selectNodeBtn-${site.id}" style="margin-top: 5px;">Select this site</button>
                 `;
-                L.marker([site.lat, site.lon]).addTo(map).bindPopup(popupContent);
+
+                const marker = L.marker([site.lat, site.lon]).addTo(map).bindPopup(popupContent);
+
+                // Add event listener for the "Select this site" button
+                marker.on('popupopen', () => {
+                    document.getElementById(`selectNodeBtn-${site.id}`).addEventListener('click', async () => {
+                        try {
+                            const response = await fetch('http://localhost:5000/api/selected-node', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ country, name: site.name || 'Unnamed' }),
+                            });
+
+                            if (!response.ok) {
+                                throw new Error(`Error: ${response.statusText}`);
+                            }
+
+                            const result = await response.json();
+                            alert(`Selected site: ${result.selectedNode.name} in ${result.selectedNode.country}`);
+                        } catch (error) {
+                            console.error('Error selecting node:', error);
+                            alert('Failed to select this site. Please try again later.');
+                        }
+                    });
+                });
             }
         });
 
@@ -60,35 +85,9 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
         const firstResult = data.find(site => site.lat && site.lon);
         if (firstResult) {
             map.setView([firstResult.lat, firstResult.lon], 10);
-
-            // Fetch and display selected site's details
-            fetchSiteDetails(firstResult.id, firstResult.country);
         }
     } catch (error) {
         console.error('Error fetching data:', error);
         alert('Failed to fetch historic sites. Please try again later.');
     }
 });
-
-// Function to fetch and display site details including Wikipedia summary
-async function fetchSiteDetails(siteId, country) {
-    try {
-        const response = await fetch(`http://localhost:5000/api/selected-node?id=${siteId}`);
-        if (!response.ok) {
-            throw new Error(`Error: ${response.statusText}`);
-        }
-
-        const selectedInfo = await response.json();
-
-        // Update the selected site panel
-        document.getElementById('selectedSiteName').textContent = `Site Name: ${selectedInfo.name}`;
-        document.getElementById('selectedCountry').textContent = `Country: ${country}`;
-
-        // Display Wikipedia summary if available
-        document.getElementById('selectedInfoSummary').textContent = selectedInfo.summary || 'No Wikipedia summary available.';
-
-    } catch (error) {
-        console.error('Error fetching site details:', error);
-        alert('Failed to fetch site details.');
-    }
-}
