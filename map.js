@@ -1,5 +1,3 @@
-// map.js
-
 // Initialize map
 const map = L.map('map').setView([20, 0], 2);  // Default to global view
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -53,8 +51,33 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
                     English Name: ${site.name_en || 'N/A'}<br>
                     Type: ${site.historicType}<br>
                     <a href="https://www.openstreetmap.org/${site.type}/${site.id}" target="_blank">View on OSM</a>
+                    <button id="selectNodeBtn-${site.id}" style="margin-top: 5px;">Select this site</button>
                 `;
-                L.marker([site.lat, site.lon]).addTo(map).bindPopup(popupContent);
+
+                const marker = L.marker([site.lat, site.lon]).addTo(map).bindPopup(popupContent);
+
+                // Add event listener for the "Select this site" button
+                marker.on('popupopen', () => {
+                    document.getElementById(`selectNodeBtn-${site.id}`).addEventListener('click', async () => {
+                        try {
+                            const response = await fetch('http://localhost:5000/api/selected-node', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ country, name: site.name || 'Unnamed' }),
+                            });
+
+                            if (!response.ok) {
+                                throw new Error(`Error: ${response.statusText}`);
+                            }
+
+                            const result = await response.json();
+                            alert(`Selected site: ${result.selectedNode.name} in ${result.selectedNode.country}`);
+                        } catch (error) {
+                            console.error('Error selecting node:', error);
+                            alert('Failed to select this site. Please try again later.');
+                        }
+                    });
+                });
             }
         });
 
@@ -68,41 +91,3 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
         alert('Failed to fetch historic sites. Please try again later.');
     }
 });
-
-data.forEach(site => {
-    if (site.lat && site.lon) {
-        const popupContent = `
-            <strong>${site.name || 'Unnamed'}</strong><br>
-            English Name: ${site.name_en || 'N/A'}<br>
-            Type: ${site.historicType}<br>
-            <a href="https://www.openstreetmap.org/${site.type}/${site.id}" target="_blank">View on OSM</a>
-            <button id="selectNodeBtn-${site.id}" style="margin-top: 5px;">Select this site</button>
-        `;
-
-        const marker = L.marker([site.lat, site.lon]).addTo(map).bindPopup(popupContent);
-
-        // Add event listener for the "Select this site" button
-        marker.on('popupopen', () => {
-            document.getElementById(`selectNodeBtn-${site.id}`).addEventListener('click', async () => {
-                try {
-                    const response = await fetch('http://localhost:5000/api/selected-node', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ country, name: site.name || 'Unnamed' }),
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`Error: ${response.statusText}`);
-                    }
-
-                    const result = await response.json();
-                    alert(`Selected site: ${result.selectedNode.name} in ${result.selectedNode.country}`);
-                } catch (error) {
-                    console.error('Error selecting node:', error);
-                    alert('Failed to select this site. Please try again later.');
-                }
-            });
-        });
-    }
-});
-
