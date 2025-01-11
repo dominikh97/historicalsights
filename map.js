@@ -1,4 +1,4 @@
-// Initialize map
+// Initialize map (unchanged)
 const map = L.map('map').setView([20, 0], 2);  // Default to global view
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
@@ -8,7 +8,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 let selectedCountry = null;
 let selectedSiteName = null;
 
-// Populate country dropdown from data.js (loaded from 'data.js' script)
+// Populate country dropdown (unchanged)
 const countryDropdown = document.getElementById('country');
 Object.keys(countryCoordinates).forEach(country => {
     const option = document.createElement('option');
@@ -17,7 +17,7 @@ Object.keys(countryCoordinates).forEach(country => {
     countryDropdown.appendChild(option);
 });
 
-// Event listener for search button
+// Event listener for search button (unchanged)
 document.getElementById('searchBtn').addEventListener('click', async () => {
     const country = countryDropdown.value;
     const historicType = document.getElementById('historicType').value;
@@ -28,7 +28,7 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
     }
 
     try {
-        // Fetch data from the backend API
+        // Fetch data from the backend API (unchanged)
         const response = await fetch(`http://localhost:5000/api/historic-sites?country=${encodeURIComponent(country)}&historicType=${encodeURIComponent(historicType)}`);
         if (!response.ok) {
             throw new Error(`Error: ${response.statusText}`);
@@ -40,14 +40,14 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
             return;
         }
 
-        // Clear existing markers from map
+        // Clear existing markers from map (unchanged)
         map.eachLayer(layer => {
             if (layer instanceof L.Marker) {
                 map.removeLayer(layer);
             }
         });
 
-        // Add markers for each result
+        // Add markers for each result (unchanged)
         data.forEach(site => {
             if (site.lat && site.lon) {
                 const popupContent = `
@@ -67,17 +67,18 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
                         selectedCountry = country;  // Store country from dropdown
                         selectedSiteName = site.name || 'Unnamed';  // Store name of the selected site
 
-                        // Optional: You can log them for debugging
-                        console.log(`Selected site: ${selectedSiteName} in ${selectedCountry}`);
+                        // Update the selected information panel
+                        document.getElementById('selectedSiteName').textContent = `Site Name: ${selectedSiteName}`;
+                        document.getElementById('selectedCountry').textContent = `Country: ${selectedCountry}`;
 
-                        // Display a confirmation message to the user
-                        alert(`You selected: ${selectedSiteName} in ${selectedCountry}`);
+                        // Fetch the Wikipedia summary for the selected site
+                        fetchWikipediaSummary(selectedSiteName, selectedCountry);
                     });
                 });
             }
         });
 
-        // Zoom to first result
+        // Zoom to first result (unchanged)
         const firstResult = data.find(site => site.lat && site.lon);
         if (firstResult) {
             map.setView([firstResult.lat, firstResult.lon], 10);
@@ -87,3 +88,35 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
         alert('Failed to fetch historic sites. Please try again later.');
     }
 });
+
+// Fetch Wikipedia summary for the selected site
+async function fetchWikipediaSummary(siteName, country) {
+    // Create a Wikipedia page title based on the selected site name and country
+    const title = `${siteName} (${country})`;  // Example: "Kështjella në Rrasen e Koshares (Albania)"
+
+    try {
+        // Make a request to the Wikipedia API to get the summary
+        const response = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`);
+        const data = await response.json();
+
+        if (data && data.extract) {
+            // Display the summary in the selected info panel
+            document.getElementById('selectedInfo').innerHTML += `
+                <h3>Wikipedia Summary</h3>
+                <p>${data.extract}</p>
+                <a href="${data.content_urls ? data.content_urls.desktop.page : '#'}" target="_blank">Read more on Wikipedia</a>
+            `;
+        } else {
+            document.getElementById('selectedInfo').innerHTML += `
+                <h3>Wikipedia Summary</h3>
+                <p>No Wikipedia summary available for this site.</p>
+            `;
+        }
+    } catch (error) {
+        console.error('Error fetching Wikipedia summary:', error);
+        document.getElementById('selectedInfo').innerHTML += `
+            <h3>Wikipedia Summary</h3>
+            <p>Failed to fetch Wikipedia summary. Please try again later.</p>
+        `;
+    }
+}
