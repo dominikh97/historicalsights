@@ -67,6 +67,10 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
                         selectedCountry = country;  // Store country from dropdown
                         selectedSiteName = site.name || 'Unnamed';  // Store name of the selected site
 
+                        // Update the selected information panel
+                        document.getElementById('selectedSiteName').textContent = `Site Name: ${selectedSiteName}`;
+                        document.getElementById('selectedCountry').textContent = `Country: ${selectedCountry}`;
+
                         // Optional: You can log them for debugging
                         console.log(`Selected site: ${selectedSiteName} in ${selectedCountry}`);
 
