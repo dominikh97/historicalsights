@@ -8,6 +8,25 @@ const path = require('path');
 const app = express();
 const overpassUrl = "https://overpass-api.de/api/interpreter";
 
+// Add this constant at the top of the file
+let selectedNode = null; // Will store the selected node as a text string
+
+// New endpoint to set the selected node
+app.post('/api/selected-node', express.json(), (req, res) => {
+    const { node } = req.body;
+    if (!node || typeof node !== 'string') {
+        return res.status(400).json({ error: 'Invalid node data' });
+    }
+    selectedNode = node;
+    logInfo(`Selected node updated: ${selectedNode}`);
+    res.json({ message: 'Node updated successfully', selectedNode });
+});
+
+// Example endpoint to retrieve the selected node if needed
+app.get('/api/selected-node', (req, res) => {
+    res.json({ selectedNode });
+});
+
 // Enable CORS for both local development and the public domain (you can also adjust this for other environments as needed)
 app.use(cors({ origin: ['http://localhost:5000', 'http://localhost:8080', 'https://historicalsights.fly.dev'] }));
 
