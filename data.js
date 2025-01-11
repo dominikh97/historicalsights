@@ -187,3 +187,35 @@ const countryCoordinates = {
     "Zambia": "-18.0, 22.0, -8.0, 33.0",
     "Zimbabwe": "-17.9, 25.0, -15.0, 32.0"
 };
+
+function addCountryToNode(nodeId, selectedCountry) {
+    if (!countryCoordinates[selectedCountry]) {
+        console.error(`Country "${selectedCountry}" not found in countryCoordinates.`);
+        return;
+    }
+
+    // Assuming nodes is an object where each key is a nodeId
+    if (!nodes[nodeId]) {
+        console.error(`Node with id "${nodeId}" not found.`);
+        return;
+    }
+
+    nodes[nodeId].country = {
+        name: selectedCountry,
+        coordinates: countryCoordinates[selectedCountry]
+    };
+    console.log(`Added country "${selectedCountry}" to node "${nodeId}".`);
+}
+
+// Example usage
+// Assuming you have a `nodes` object and a node ID "node123"
+const nodes = {
+    "node123": { id: "node123", name: "Example Node" },
+    "node456": { id: "node456", name: "Another Node" }
+};
+
+// Add a country to a specific node
+addCountryToNode("node123", "India");
+
+// Check the result
+console.log(nodes);
