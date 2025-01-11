@@ -76,6 +76,25 @@
             flex-grow: 1;  /* Makes the map take up remaining space */
             margin-left: 20px;
         }
+
+        #selectedInfo {
+            background-color: white;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            width: 300px;
+            margin-top: 20px;
+        }
+
+        #selectedInfo h2 {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        #selectedInfo p {
+            font-size: 16px;
+            margin: 5px 0;
+        }
     </style>
 </head>
 <body>
@@ -119,6 +138,13 @@
         </div>
 
         <div id="map"></div>
+
+        <!-- Panel to display selected site information -->
+        <div id="selectedInfo">
+            <h2>Selected Site</h2>
+            <p id="selectedSiteName">Site Name: N/A</p>
+            <p id="selectedCountry">Country: N/A</p>
+        </div>
     </div>
 
     <script src="data.js"></script>
