@@ -13,6 +13,21 @@ Object.keys(countryCoordinates).forEach(country => {
     countryDropdown.appendChild(option);
 });
 
+// Function to fetch Wikipedia summary
+async function fetchWikipediaSummary(siteName, country) {
+    try {
+        const response = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(siteName)}`);
+        if (!response.ok) {
+            throw new Error('Error fetching Wikipedia summary');
+        }
+        const data = await response.json();
+        return data.extract;  // Return the summary
+    } catch (error) {
+        console.error(`Error fetching Wikipedia summary for ${siteName}:`, error);
+        return null;
+    }
+}
+
 // Event listener for search button
 document.getElementById('searchBtn').addEventListener('click', async () => {
     const country = countryDropdown.value;
@@ -44,15 +59,27 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
         });
 
         // Add markers for each result
-        data.forEach(site => {
+        data.forEach(async site => {
             if (site.lat && site.lon) {
                 const popupContent = `
                     <strong>${site.name || 'Unnamed'}</strong><br>
                     English Name: ${site.name_en || 'N/A'}<br>
                     Type: ${site.historicType}<br>
                     <a href="https://www.openstreetmap.org/${site.type}/${site.id}" target="_blank">View on OSM</a>
+                    <button id="selectBtn-${site.id}" class="selectBtn" data-site-id="${site.id}" data-site-name="${site.name}" data-site-country="${country}">Select this site</button>
                 `;
-                L.marker([site.lat, site.lon]).addTo(map).bindPopup(popupContent);
+                const marker = L.marker([site.lat, site.lon]).addTo(map).bindPopup(popupContent);
+
+                // Add click event for selecting a site
+                marker.on('click', async () => {
+                    const selectedSiteId = marker.options.id;
+                    const selectedSiteName = site.name;
+                    const selectedCountry = country;
+
+                    // Fetch the Wikipedia summary for the selected site
+                    const summary = await fetchWikipediaSummary(selectedSiteName, selectedCountry);
+                    displaySelectedInfo(selectedSiteName, selectedCountry, summary);
+                });
             }
         });
 
@@ -60,9 +87,6 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
         const firstResult = data.find(site => site.lat && site.lon);
         if (firstResult) {
             map.setView([firstResult.lat, firstResult.lon], 10);
-
-            // Fetch and display selected site's details
-            fetchSiteDetails(firstResult.id, firstResult.country);
         }
     } catch (error) {
         console.error('Error fetching data:', error);
@@ -70,25 +94,13 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
     }
 });
 
-// Function to fetch and display site details including Wikipedia summary
-async function fetchSiteDetails(siteId, country) {
-    try {
-        const response = await fetch(`http://localhost:5000/api/selected-node?id=${siteId}`);
-        if (!response.ok) {
-            throw new Error(`Error: ${response.statusText}`);
-        }
-
-        const selectedInfo = await response.json();
-
-        // Update the selected site panel
-        document.getElementById('selectedSiteName').textContent = `Site Name: ${selectedInfo.name}`;
-        document.getElementById('selectedCountry').textContent = `Country: ${country}`;
-
-        // Display Wikipedia summary if available
-        document.getElementById('selectedInfoSummary').textContent = selectedInfo.summary || 'No Wikipedia summary available.';
-
-    } catch (error) {
-        console.error('Error fetching site details:', error);
-        alert('Failed to fetch site details.');
+// Function to display selected site info
+function displaySelectedInfo(name, country, summary) {
+    document.getElementById('selectedSiteName').textContent = `Site Name: ${name || 'N/A'}`;
+    document.getElementById('selectedCountry').textContent = `Country: ${country || 'N/A'}`;
+    if (summary) {
+        document.getElementById('selectedInfoSummary').textContent = summary;
+    } else {
+        document.getElementById('selectedInfoSummary').textContent = 'Summary not available.';
     }
 }
