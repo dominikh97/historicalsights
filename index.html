@@ -148,13 +148,6 @@
         </div>
     </div>
 
-    <div id="selectedInfo">
-    <h2>Selected Site</h2>
-    <p id="selectedSiteName">Site Name: N/A</p>
-    <p id="selectedCountry">Country: N/A</p>
-    <button id="fetchWikiBtn">Fetch Wikipedia Info</button>
-    </div>
-
     <script src="data.js"></script>
     <script src="map.js"></script>
 
@@ -162,29 +155,29 @@
     // Function to fetch the Wikipedia summary for the selected site
     async function fetchWikipediaSummary(siteName) {
         try {
-            const response = await fetch(https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(siteName)});
+            const response = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(siteName)}`);
             if (!response.ok) {
-                throw new Error(Failed to fetch summary for "${siteName}");
+                throw new Error(`Failed to fetch summary for "${siteName}"`);
             }
             const data = await response.json();
             const infoContainer = document.getElementById('selectedInfo');
 
             if (data.type === "standard") {
-                infoContainer.innerHTML = 
+                infoContainer.innerHTML = `
                     <h2>${data.title}</h2>
                     <p>${data.extract}</p>
                     <a href="${data.content_urls.desktop.page}" target="_blank">Read more on Wikipedia</a>
-                ;
+                `;
             } else {
-                throw new Error(No summary found for "${siteName}");
+                throw new Error(`No summary found for "${siteName}"`);
             }
         } catch (error) {
             const infoContainer = document.getElementById('selectedInfo');
-            infoContainer.innerHTML = 
+            infoContainer.innerHTML = `
                 <h2>Site Information</h2>
                 <p>Could not fetch details for "${siteName}".</p>
                 <p>${error.message}</p>
-            ;
+            `;
         }
     }
 
@@ -195,8 +188,8 @@
             const clickedSite = getSiteDetailsFromMap(e.latlng); // Custom function to extract site details
             if (clickedSite && clickedSite.name) {
                 // Update the site name and country in the info panel
-                document.getElementById('selectedSiteName').textContent = Site Name: ${clickedSite.name};
-                document.getElementById('selectedCountry').textContent = Country: ${clickedSite.country || 'N/A'};
+                document.getElementById('selectedSiteName').textContent = `Site Name: ${clickedSite.name}`;
+                document.getElementById('selectedCountry').textContent = `Country: ${clickedSite.country || 'N/A'}`;
 
                 // Fetch Wikipedia summary for the clicked site
                 fetchWikipediaSummary(clickedSite.name);
