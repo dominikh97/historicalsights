@@ -1,12 +1,12 @@
 // map.js
 
-// Initialize map (unchanged)
-const map = L.map('map').setView([20, 0], 2);  // Default to global view
+// Initialize map
+const map = L.map('map').setView([20, 0], 2);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
 }).addTo(map);
 
-// Store selected node country and name locally (client-side state)
+// Store selected node info locally
 let selectedCountry = null;
 let selectedSiteName = null;
 
@@ -19,7 +19,7 @@ Object.keys(countryCoordinates).forEach(country => {
     countryDropdown.appendChild(option);
 });
 
-// Event listener for search button (unchanged)
+// Event listener for "Search" button
 document.getElementById('searchBtn').addEventListener('click', async () => {
     const country = countryDropdown.value;
     const historicType = document.getElementById('historicType').value;
@@ -30,8 +30,10 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
     }
 
     try {
-        // Fetch data from the backend API (unchanged)
-        const response = await fetch(`http://localhost:5000/api/historic-sites?country=${encodeURIComponent(country)}&historicType=${encodeURIComponent(historicType)}`);
+        // Fetch data from the backend
+        const response = await fetch(
+            `http://localhost:5000/api/historic-sites?country=${encodeURIComponent(country)}&historicType=${encodeURIComponent(historicType)}`
+        );
         if (!response.ok) {
             throw new Error(`Error: ${response.statusText}`);
         }
@@ -42,14 +44,14 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
             return;
         }
 
-        // Clear existing markers from map (unchanged)
+        // Clear existing markers
         map.eachLayer(layer => {
             if (layer instanceof L.Marker) {
                 map.removeLayer(layer);
             }
         });
 
-        // Add markers for each result (unchanged)
+        // Add markers for each site
         data.forEach(site => {
             if (site.lat && site.lon) {
                 const popupContent = `
@@ -57,33 +59,50 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
                     English Name: ${site.name_en || 'N/A'}<br>
                     Type: ${site.historicType}<br>
                     <a href="https://www.openstreetmap.org/${site.type}/${site.id}" target="_blank">View on OSM</a><br>
-                    <button id="selectNodeBtn-${site.id}" style="margin-top: 5px;">Select this site</button>
+                    <button id="selectNodeBtn-${site.id}" style="margin-top: 5px;">
+                        Select this site
+                    </button>
                 `;
 
                 const marker = L.marker([site.lat, site.lon]).addTo(map).bindPopup(popupContent);
 
-                // Add event listener for the "Select this site" button
+                // Attach event listener to each "Select this site" button
                 marker.on('popupopen', () => {
-                    document.getElementById(`selectNodeBtn-${site.id}`).addEventListener('click', () => {
-                        // Store the selected country and site name in local variables
-                        selectedCountry = country;  // Store country from dropdown
-                        selectedSiteName = site.name || 'Unnamed';  // Store name of the selected site
+                    const selectBtn = document.getElementById(`selectNodeBtn-${site.id}`);
+                    if (selectBtn) {
+                        selectBtn.addEventListener('click', () => {
+                            // Always call the Wikipedia API here
 
-                        // Update the selected information panel
-                        document.getElementById('selectedSiteName').textContent = `Site Name: ${selectedSiteName}`;
-                        document.getElementById('selectedCountry').textContent = `Country: ${selectedCountry}`;
+                            // Update local variables
+                            selectedCountry = country;
+                            selectedSiteName = site.name || 'Unnamed';
 
-                        // Clear old Wikipedia summary (so it doesn't keep appending)
-                        document.getElementById('selectedInfo').innerHTML = '';
+                            // Update DOM safely
+                            const siteNameEl = document.getElementById('selectedSiteName');
+                            const countryEl = document.getElementById('selectedCountry');
 
-                        // Fetch the Wikipedia summary for the selected site
-                        fetchWikipediaSummary(selectedSiteName, selectedCountry);
-                    });
+                            if (siteNameEl) {
+                                siteNameEl.textContent = `Site Name: ${selectedSiteName}`;
+                            }
+                            if (countryEl) {
+                                countryEl.textContent = `Country: ${selectedCountry}`;
+                            }
+
+                            // Clear old summary
+                            const infoEl = document.getElementById('selectedInfo');
+                            if (infoEl) {
+                                infoEl.innerHTML = ''; 
+                            }
+
+                            // Call Wikipedia API
+                            fetchWikipediaSummary(selectedSiteName, selectedCountry);
+                        });
+                    }
                 });
             }
         });
 
-        // Zoom to the first result (unchanged)
+        // Zoom to the first result
         const firstResult = data.find(site => site.lat && site.lon);
         if (firstResult) {
             map.setView([firstResult.lat, firstResult.lon], 10);
@@ -94,58 +113,70 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
     }
 });
 
-// Fetch Wikipedia summary for the selected site
+// Fetch Wikipedia summary
 async function fetchWikipediaSummary(siteName, country) {
-    // Create a Wikipedia page title based on the selected site name and country
-    const title = `${siteName} (${country})`;  // e.g., "Kështjella e Rrasës (Albania)"
+    // Show a temporary loading message
+    const infoEl = document.getElementById('selectedInfo');
+    if (infoEl) {
+        infoEl.innerHTML = `<h3>Loading Wikipedia summary...</h3>`;
+    }
 
-    // Show a quick "Loading..." message
-    document.getElementById('selectedInfo').innerHTML = `<h3>Loading Wikipedia summary...</h3>`;
-
+    // First try: "SiteName (Country)"
+    const title = `${siteName} (${country})`;
     try {
-        // First attempt: "SiteName (Country)"
-        const data = await fetchWikiData(title);
-
+        let data = await fetchWikiData(title);
         if (data && data.extract) {
-            // Display the summary in the selected info panel
-            document.getElementById('selectedInfo').innerHTML = `
-                <h3>Wikipedia Summary</h3>
-                <p>${data.extract}</p>
-                <a href="${data.content_urls ? data.content_urls.desktop.page : '#'}" target="_blank">Read more on Wikipedia</a>
-            `;
+            updateInfo(data, `Wikipedia Summary for "${title}"`);
         } else {
-            // Optional: Fallback to "SiteName" only if the first attempt fails
-            const fallbackData = await fetchWikiData(siteName);
-            if (fallbackData && fallbackData.extract) {
-                document.getElementById('selectedInfo').innerHTML = `
-                    <h3>Wikipedia Summary (Fallback)</h3>
-                    <p>${fallbackData.extract}</p>
-                    <a href="${fallbackData.content_urls ? fallbackData.content_urls.desktop.page : '#'}" target="_blank">Read more on Wikipedia</a>
-                `;
+            // Fallback: just "SiteName"
+            data = await fetchWikiData(siteName);
+            if (data && data.extract) {
+                updateInfo(data, `Wikipedia Summary (Fallback) for "${siteName}"`);
             } else {
-                document.getElementById('selectedInfo').innerHTML = `
-                    <h3>Wikipedia Summary</h3>
-                    <p>No Wikipedia summary available for this site.</p>
-                `;
+                if (infoEl) {
+                    infoEl.innerHTML = `
+                        <h3>Wikipedia Summary</h3>
+                        <p>No Wikipedia summary available for this site.</p>
+                    `;
+                }
             }
         }
     } catch (error) {
         console.error('Error fetching Wikipedia summary:', error);
-        document.getElementById('selectedInfo').innerHTML = `
-            <h3>Wikipedia Summary</h3>
-            <p>Failed to fetch Wikipedia summary. Please try again later.</p>
-        `;
+        if (infoEl) {
+            infoEl.innerHTML = `
+                <h3>Wikipedia Summary</h3>
+                <p>Failed to fetch Wikipedia summary. Please try again later.</p>
+            `;
+        }
     }
 }
 
-/**
- * Helper function to fetch data from Wikipedia's REST API
- */
+// Helper function to fetch from Wikipedia's REST API
 async function fetchWikiData(title) {
-    const response = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`);
-    if (!response.ok) {
-        // Return null or a minimal structure
+    try {
+        const response = await fetch(
+            `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`
+        );
+        if (!response.ok) {
+            return null; // or throw an Error if you prefer
+        }
+        return await response.json();
+    } catch (err) {
         return null;
     }
-    return await response.json();
+}
+
+// Helper to update #selectedInfo
+function updateInfo(data, heading) {
+    const infoEl = document.getElementById('selectedInfo');
+    if (infoEl) {
+        infoEl.innerHTML = `
+            <h3>${heading}</h3>
+            <p>${data.extract}</p>
+            <a href="${data.content_urls ? data.content_urls.desktop.page : '#'}" target="_blank">
+                Read more on Wikipedia
+            </a>
+        `;
+    }
 }
