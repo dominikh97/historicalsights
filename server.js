@@ -8,42 +8,25 @@ const path = require('path');
 const app = express();
 const overpassUrl = "https://overpass-api.de/api/interpreter";
 
-// Add this constant at the top of the file
-let selectedNode = null; // Will store the selected node as a text string
-
-// New endpoint to set the selected node
-app.post('/api/selected-node', express.json(), (req, res) => {
-    const { node } = req.body;
-    if (!node || typeof node !== 'string') {
-        return res.status(400).json({ error: 'Invalid node data' });
-    }
-    selectedNode = node;
-    logInfo(`Selected node updated: ${selectedNode}`);
-    res.json({ message: 'Node updated successfully', selectedNode });
-});
-
-// Example endpoint to retrieve the selected node if needed
-app.get('/api/selected-node', (req, res) => {
-    res.json({ selectedNode });
-});
-
-// Enable CORS for both local development and the public domain (you can also adjust this for other environments as needed)
+// Middleware setup
 app.use(cors({ origin: ['http://localhost:5000', 'http://localhost:8080', 'https://historicalsights.fly.dev'] }));
-
-// Serve static files from 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json()); // For parsing JSON in requests
 
-// Serve data.js explicitly (this is used to ensure it's accessible on the front-end)
+// Variable to store selected node details
+let selectedNodeDetails = null;
+
+// Serve data.js explicitly
 app.get('/data.js', (req, res) => {
     res.sendFile(path.join(__dirname, 'data.js'));
 });
 
-// Root route (for API documentation or status check)
+// Root route
 app.get('/', (req, res) => {
     res.send('Welcome to the Historic Sites API. Please use the appropriate endpoints.');
 });
 
-// Fetch Overpass data with retry logic
+// Fetch Overpass data
 async function fetchOverpassData(query, retries = 5, delay = 1000) {
     try {
         const response = await fetch(overpassUrl, {
@@ -64,16 +47,13 @@ async function fetchOverpassData(query, retries = 5, delay = 1000) {
     }
 }
 
-// Endpoint to get list of countries
+// API endpoints
 app.get('/api/countries', (req, res) => {
-    logInfo('Fetching country list.');
     res.json(Object.keys(countryCoordinates));
 });
 
-// Endpoint to fetch historic sites
 app.get('/api/historic-sites', async (req, res) => {
     const { country, historicType, q: searchTerm } = req.query;
-
     if (!country || !historicType) {
         return res.status(400).json({ error: 'Both country and historicType are required.' });
     }
@@ -82,9 +62,7 @@ app.get('/api/historic-sites', async (req, res) => {
     }
 
     try {
-        logInfo(`Fetching historic sites for country: ${country}, type: ${historicType}, term: ${searchTerm || 'N/A'}`);
         const boundingBox = countryCoordinates[country];
-
         let query = `[out:json][timeout:20];node["historic"="${historicType}"](${boundingBox});out body;`;
         if (searchTerm) {
             query = `[out:json][timeout:20];node["historic"="${historicType}"]["name"~"${searchTerm}",i](${boundingBox});out body;`;
@@ -100,23 +78,36 @@ app.get('/api/historic-sites', async (req, res) => {
             name_en: e.tags['name:en'] || 'Unnamed (English)',
             historicType: e.tags.historic,
         }));
-
-        logInfo(`Found ${results.length} results.`);
         res.json(results);
     } catch (error) {
-        logError(`Error fetching historic sites: ${error.message}`);
         res.status(500).json({ error: 'Error fetching data', details: error.message });
     }
 });
 
-// Fallback for undefined routes (e.g., to serve SPA index.html)
+// Store selected node details
+app.post('/api/selected-node', (req, res) => {
+    const { name, country } = req.body;
+    if (!name || !country) {
+        return res.status(400).json({ error: 'Both name and country are required.' });
+    }
+
+    selectedNodeDetails = { name, country };
+    logInfo(`Selected node updated: ${JSON.stringify(selectedNodeDetails)}`);
+    res.json({ message: 'Selected node details updated', selectedNodeDetails });
+});
+
+// Retrieve selected node details
+app.get('/api/selected-node', (req, res) => {
+    res.json({ selectedNodeDetails });
+});
+
+// Serve fallback SPA
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Start server on a specified port
-const PORT = process.env.PORT || 5000;  // Default to 5000 for local testing
+// Start server
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://0.0.0.0:${PORT}/`);
-    logInfo(`Server listening on ${PORT}`);
 });
