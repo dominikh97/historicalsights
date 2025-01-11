@@ -8,7 +8,7 @@ const path = require('path');
 const app = express();
 const overpassUrl = "https://overpass-api.de/api/interpreter";
 
-// Enable CORS for both local development and the public domain
+// Enable CORS for both local development and the public domain (you can also adjust this for other environments as needed)
 app.use(cors({ origin: ['http://localhost:5000', 'http://localhost:8080', 'https://historicalsights.fly.dev'] }));
 
 // Serve static files from 'public' directory
@@ -87,37 +87,6 @@ app.get('/api/historic-sites', async (req, res) => {
     } catch (error) {
         logError(`Error fetching historic sites: ${error.message}`);
         res.status(500).json({ error: 'Error fetching data', details: error.message });
-    }
-});
-
-// Endpoint to send selected node data to Python server
-app.get('/send-node', async (req, res) => {
-    const selectedNode = {
-        id: req.query.nodeId || '12345',
-        name: req.query.name || 'Sample Node',
-        latitude: req.query.lat || 50.0,
-        longitude: req.query.lon || 50.0,
-    };
-
-    // Log selectedNode data
-    console.log("Selected Node Data:", selectedNode);
-
-    try {
-        // Send the selectedNode data to the Python Flask server
-        const response = await fetch('http://localhost:5001/process-node', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(selectedNode),
-        });
-
-        const data = await response.json();
-        console.log("Response from Python:", data);
-
-        // Send response back to the client
-        res.json(data);
-    } catch (error) {
-        console.error("Error in communication with Python server:", error);
-        res.status(500).json({ error: 'Error communicating with Python server.' });
     }
 });
 
