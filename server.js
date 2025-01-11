@@ -4,12 +4,11 @@ const fetch = globalThis.fetch || require('node-fetch');
 const { countryCoordinates } = require('./data');
 const { logInfo, logError } = require('./logger');
 const path = require('path');
-const fs = require('fs');
 
 const app = express();
 const overpassUrl = "https://overpass-api.de/api/interpreter";
 
-// Enable CORS for both local development and the public domain (you can also adjust this for other environments as needed)
+// Enable CORS for both local development and the public domain
 app.use(cors({ origin: ['http://localhost:5000', 'http://localhost:8080', 'https://historicalsights.fly.dev'] }));
 
 // Serve static files from 'public' directory
@@ -91,35 +90,35 @@ app.get('/api/historic-sites', async (req, res) => {
     }
 });
 
-// Endpoint to save selected node to file
-app.get('/save-node', (req, res) => {
-    const nodeId = req.query.nodeId;
+// Endpoint to send selected node data to Python server
+app.get('/send-node', async (req, res) => {
+    const selectedNode = {
+        id: req.query.nodeId || '12345',
+        name: req.query.name || 'Sample Node',
+        latitude: req.query.lat || 50.0,
+        longitude: req.query.lon || 50.0,
+    };
 
-    if (!nodeId) {
-        return res.status(400).send('Error: nodeId is required');
+    // Log selectedNode data
+    console.log("Selected Node Data:", selectedNode);
+
+    try {
+        // Send the selectedNode data to the Python Flask server
+        const response = await fetch('http://localhost:5001/process-node', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(selectedNode),
+        });
+
+        const data = await response.json();
+        console.log("Response from Python:", data);
+
+        // Send response back to the client
+        res.json(data);
+    } catch (error) {
+        console.error("Error in communication with Python server:", error);
+        res.status(500).json({ error: 'Error communicating with Python server.' });
     }
-
-    const data = { selectedNode: nodeId };
-
-    fs.writeFile('selectedNode.json', JSON.stringify(data, null, 2), (err) => {
-        if (err) {
-            console.error('Error saving node:', err);
-            return res.status(500).send('Failed to save the node');
-        }
-        res.send(`Node ${nodeId} saved successfully`);
-    });
-});
-
-// Optional: Endpoint to read selected node from file
-app.get('/get-node', (req, res) => {
-    fs.readFile('selectedNode.json', 'utf-8', (err, data) => {
-        if (err) {
-            console.error('Error reading node:', err);
-            return res.status(500).send('Failed to read the node');
-        }
-        const parsedData = JSON.parse(data || '{}');
-        res.json(parsedData);
-    });
 });
 
 // Fallback for undefined routes (e.g., to serve SPA index.html)
@@ -133,4 +132,3 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://0.0.0.0:${PORT}/`);
     logInfo(`Server listening on ${PORT}`);
 });
-
