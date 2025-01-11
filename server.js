@@ -11,6 +11,9 @@ const overpassUrl = "https://overpass-api.de/api/interpreter";
 // Enable CORS for both local development and the public domain (you can also adjust this for other environments as needed)
 app.use(cors({ origin: ['http://localhost:5000', 'http://localhost:8080', 'https://historicalsights.fly.dev'] }));
 
+// Middleware to parse JSON
+app.use(express.json());
+
 // Serve static files from 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -22,6 +25,31 @@ app.get('/data.js', (req, res) => {
 // Root route (for API documentation or status check)
 app.get('/', (req, res) => {
     res.send('Welcome to the Historic Sites API. Please use the appropriate endpoints.');
+});
+
+// Store selected node
+let selectedNode = null;
+
+// Endpoint to update the selected node
+app.post('/api/selected-node', (req, res) => {
+    const { country, name } = req.body;
+
+    if (!country || !name) {
+        return res.status(400).json({ error: 'Both country and name are required.' });
+    }
+
+    selectedNode = { country, name };
+    logInfo(`Selected node updated: ${JSON.stringify(selectedNode)}`);
+    res.json({ success: true, selectedNode });
+});
+
+// Endpoint to retrieve the selected node
+app.get('/api/selected-node', (req, res) => {
+    if (!selectedNode) {
+        return res.status(404).json({ error: 'No node selected yet.' });
+    }
+
+    res.json(selectedNode);
 });
 
 // Fetch Overpass data with retry logic
@@ -93,31 +121,6 @@ app.get('/api/historic-sites', async (req, res) => {
 // Fallback for undefined routes (e.g., to serve SPA index.html)
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// Add this constant to store the selected node
-let selectedNode = null;
-
-// New endpoint to update the selected node
-app.post('/api/selected-node', express.json(), (req, res) => {
-    const { country, name } = req.body;
-
-    if (!country || !name) {
-        return res.status(400).json({ error: 'Both country and name are required.' });
-    }
-
-    selectedNode = { country, name };
-    logInfo(`Selected node updated: ${JSON.stringify(selectedNode)}`);
-    res.json({ success: true, selectedNode });
-});
-
-// Endpoint to retrieve the selected node (optional)
-app.get('/api/selected-node', (req, res) => {
-    if (!selectedNode) {
-        return res.status(404).json({ error: 'No node selected yet.' });
-    }
-
-    res.json(selectedNode);
 });
 
 // Start server on a specified port
