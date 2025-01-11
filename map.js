@@ -1,12 +1,8 @@
-// map.js
-
 // Initialize map
-const map = L.map('map').setView([20, 0], 2);  // Default to global view
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-}).addTo(map);
+const map = L.map('map').setView([20, 0], 2);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
 
-// Populate country dropdown from data.js (loaded from 'data.js' script)
+// Populate country dropdown
 const countryDropdown = document.getElementById('country');
 Object.keys(countryCoordinates).forEach(country => {
     const option = document.createElement('option');
@@ -15,7 +11,7 @@ Object.keys(countryCoordinates).forEach(country => {
     countryDropdown.appendChild(option);
 });
 
-// Event listener for search button
+// Search button event listener
 document.getElementById('searchBtn').addEventListener('click', async () => {
     const country = countryDropdown.value;
     const historicType = document.getElementById('historicType').value;
@@ -26,76 +22,61 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
     }
 
     try {
-        // Fetch data from the backend API
         const response = await fetch(`http://localhost:5000/api/historic-sites?country=${encodeURIComponent(country)}&historicType=${encodeURIComponent(historicType)}`);
-        if (!response.ok) {
-            throw new Error(`Error: ${response.statusText}`);
-        }
-
         const data = await response.json();
+
         if (data.length === 0) {
             alert(`No results found for ${historicType} in ${country}.`);
             return;
         }
 
-        // Clear existing markers from map
+        // Clear existing markers
         map.eachLayer(layer => {
-            if (layer instanceof L.Marker) {
-                map.removeLayer(layer);
-            }
+            if (layer instanceof L.Marker) map.removeLayer(layer);
         });
 
-        // Add markers for each result
+        // Add markers and attach click events
         data.forEach(site => {
             if (site.lat && site.lon) {
                 const popupContent = `
                     <strong>${site.name || 'Unnamed'}</strong><br>
-                    English Name: ${site.name_en || 'N/A'}<br>
                     Type: ${site.historicType}<br>
                     <a href="https://www.openstreetmap.org/${site.type}/${site.id}" target="_blank">View on OSM</a>
                 `;
-                L.marker([site.lat, site.lon]).addTo(map).bindPopup(popupContent);
+                const marker = L.marker([site.lat, site.lon]).addTo(map).bindPopup(popupContent);
+
+                marker.on('click', async () => {
+                    const selectedNodeDetails = {
+                        name: site.name || 'Unnamed',
+                        country,
+                    };
+
+                    // Update right panel
+                    document.getElementById('nodeDetails').innerHTML = `
+                        <strong>Selected Node:</strong><br>
+                        Name: ${selectedNodeDetails.name}<br>
+                        Country: ${selectedNodeDetails.country}
+                    `;
+
+                    // Send to backend
+                    try {
+                        await fetch('http://localhost:5000/api/selected-node', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(selectedNodeDetails),
+                        });
+                    } catch (error) {
+                        console.error('Error sending selected node details:', error);
+                    }
+                });
             }
         });
 
-        // Zoom to first result
+        // Zoom to the first result
         const firstResult = data.find(site => site.lat && site.lon);
-        if (firstResult) {
-            map.setView([firstResult.lat, firstResult.lon], 10);
-        }
+        if (firstResult) map.setView([firstResult.lat, firstResult.lon], 10);
     } catch (error) {
         console.error('Error fetching data:', error);
-        alert('Failed to fetch historic sites. Please try again later.');
+        alert('Failed to fetch historic sites.');
     }
 });
-
-// Modify the code where markers are added in the search button's event listener
-data.forEach(site => {
-    if (site.lat && site.lon) {
-        const popupContent = `
-            <strong>${site.name || 'Unnamed'}</strong><br>
-            English Name: ${site.name_en || 'N/A'}<br>
-            Type: ${site.historicType}<br>
-            <a href="https://www.openstreetmap.org/${site.type}/${site.id}" target="_blank">View on OSM</a>
-        `;
-        const marker = L.marker([site.lat, site.lon]).addTo(map).bindPopup(popupContent);
-
-        // Add click event to store the selected node
-        marker.on('click', async () => {
-            try {
-                const response = await fetch('http://localhost:5000/api/selected-node', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ node: `Node ID: ${site.id}, Name: ${site.name || 'Unnamed'}` }),
-                });
-                if (!response.ok) {
-                    throw new Error('Failed to update selected node');
-                }
-                console.log('Selected node updated successfully');
-            } catch (error) {
-                console.error('Error updating selected node:', error);
-            }
-        });
-    }
-});
-
