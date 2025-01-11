@@ -1,3 +1,5 @@
+// map.js
+
 // Initialize map
 const map = L.map('map').setView([20, 0], 2);  // Default to global view
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -25,14 +27,14 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
 
     try {
         // Fetch data from the backend API
-        const response = await fetch(http://localhost:5000/api/historic-sites?country=${encodeURIComponent(country)}&historicType=${encodeURIComponent(historicType)});
+        const response = await fetch(`http://localhost:5000/api/historic-sites?country=${encodeURIComponent(country)}&historicType=${encodeURIComponent(historicType)}`);
         if (!response.ok) {
-            throw new Error(Error: ${response.statusText});
+            throw new Error(`Error: ${response.statusText}`);
         }
 
         const data = await response.json();
         if (data.length === 0) {
-            alert(No results found for ${historicType} in ${country}.);
+            alert(`No results found for ${historicType} in ${country}.`);
             return;
         }
 
@@ -46,12 +48,12 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
         // Add markers for each result
         data.forEach(site => {
             if (site.lat && site.lon) {
-                const popupContent = 
+                const popupContent = `
                     <strong>${site.name || 'Unnamed'}</strong><br>
                     English Name: ${site.name_en || 'N/A'}<br>
                     Type: ${site.historicType}<br>
                     <a href="https://www.openstreetmap.org/${site.type}/${site.id}" target="_blank">View on OSM</a>
-                ;
+                `;
                 L.marker([site.lat, site.lon]).addTo(map).bindPopup(popupContent);
             }
         });
