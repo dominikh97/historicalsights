@@ -8,7 +8,7 @@ const path = require('path');
 const app = express();
 const overpassUrl = "https://overpass-api.de/api/interpreter";
 
-// Enable CORS for both local development and the public domain
+// Enable CORS for both local development and the public domain (you can also adjust this for other environments as needed)
 app.use(cors({ origin: ['http://localhost:5000', 'http://localhost:8080', 'https://historicalsights.fly.dev'] }));
 
 // Serve static files from 'public' directory
@@ -37,10 +37,10 @@ async function fetchOverpassData(query, retries = 5, delay = 1000) {
             await new Promise(resolve => setTimeout(resolve, delay));
             return fetchOverpassData(query, retries - 1, delay * 2);
         }
-        if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+        if (!response.ok) throw new Error(HTTP error: ${response.status});
         return await response.json();
     } catch (error) {
-        logError(`Overpass API error: ${error.message}`);
+        logError(Overpass API error: ${error.message});
         throw error;
     }
 }
@@ -59,16 +59,16 @@ app.get('/api/historic-sites', async (req, res) => {
         return res.status(400).json({ error: 'Both country and historicType are required.' });
     }
     if (!countryCoordinates[country]) {
-        return res.status(404).json({ error: `Country '${country}' not found.` });
+        return res.status(404).json({ error: Country '${country}' not found. });
     }
 
     try {
-        logInfo(`Fetching historic sites for country: ${country}, type: ${historicType}, term: ${searchTerm || 'N/A'}`);
+        logInfo(Fetching historic sites for country: ${country}, type: ${historicType}, term: ${searchTerm || 'N/A'});
         const boundingBox = countryCoordinates[country];
 
-        let query = `[out:json][timeout:20];node["historic"="${historicType}"](${boundingBox});out body;`;
+        let query = [out:json][timeout:20];node["historic"="${historicType}"](${boundingBox});out body;;
         if (searchTerm) {
-            query = `[out:json][timeout:20];node["historic"="${historicType}"]["name"~"${searchTerm}",i](${boundingBox});out body;`;
+            query = [out:json][timeout:20];node["historic"="${historicType}"]["name"~"${searchTerm}",i](${boundingBox});out body;;
         }
 
         const data = await fetchOverpassData(query);
@@ -82,42 +82,11 @@ app.get('/api/historic-sites', async (req, res) => {
             historicType: e.tags.historic,
         }));
 
-        logInfo(`Found ${results.length} results.`);
+        logInfo(Found ${results.length} results.);
         res.json(results);
     } catch (error) {
-        logError(`Error fetching historic sites: ${error.message}`);
+        logError(Error fetching historic sites: ${error.message});
         res.status(500).json({ error: 'Error fetching data', details: error.message });
-    }
-});
-
-// Endpoint to send selected node data to Python server
-app.get('/send-node', async (req, res) => {
-    const selectedNode = {
-        id: req.query.nodeId || '12345',
-        name: req.query.name || 'Sample Node',
-        latitude: req.query.lat || 50.0,
-        longitude: req.query.lon || 50.0,
-    };
-
-    // Log selectedNode data
-    console.log("Selected Node Data:", selectedNode);
-
-    try {
-        // Send the selectedNode data to the Python Flask server
-        const response = await fetch('http://localhost:5001/process-node', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(selectedNode),
-        });
-
-        const data = await response.json();
-        console.log("Response from Python:", data);
-
-        // Send response back to the client
-        res.json(data);
-    } catch (error) {
-        console.error("Error in communication with Python server:", error);
-        res.status(500).json({ error: 'Error communicating with Python server.' });
     }
 });
 
@@ -129,6 +98,6 @@ app.get('*', (req, res) => {
 // Start server on a specified port
 const PORT = process.env.PORT || 5000;  // Default to 5000 for local testing
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://0.0.0.0:${PORT}/`);
-    logInfo(`Server listening on ${PORT}`);
+    console.log(Server running on http://0.0.0.0:${PORT}/);
+    logInfo(Server listening on ${PORT});
 });
