@@ -45,21 +45,9 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
             width: 300px;
-            flex-shrink: 0;
         }
 
-        #rightPanel {
-            background-color: white;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            width: 300px;
-            flex-shrink: 0;
-            margin-left: 20px;
-        }
-
-        #controls label,
-        #rightPanel label {
+        #controls label {
             font-size: 16px;
             margin-bottom: 5px;
         }
@@ -85,12 +73,8 @@
 
         #map {
             height: 500px;
-            flex-grow: 1;
-        }
-
-        #nodeDetails {
-            margin-top: 20px;
-            font-size: 14px;
+            flex-grow: 1;  /* Makes the map take up remaining space */
+            margin-left: 20px;
         }
     </style>
 </head>
@@ -135,17 +119,10 @@
         </div>
 
         <div id="map"></div>
-
-        <div id="rightPanel">
-            <h3>Node Information</h3>
-            <p id="nodeDetails">Select a node to view details here.</p>
-            <button id="polygonBtn" style="display:none;" onclick="downloadPolygon()">Calculate and Fetch Polygon</button>
-        </div>
     </div>
 
     <script src="data.js"></script>
     <script src="map.js"></script>
-    <script src="drawPolygon.js"></script>
 
 </body>
 </html>
