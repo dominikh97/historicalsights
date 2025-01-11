@@ -1,3 +1,5 @@
+// map.js
+
 // Initialize map (unchanged)
 const map = L.map('map').setView([20, 0], 2);  // Default to global view
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -54,7 +56,7 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
                     <strong>${site.name || 'Unnamed'}</strong><br>
                     English Name: ${site.name_en || 'N/A'}<br>
                     Type: ${site.historicType}<br>
-                    <a href="https://www.openstreetmap.org/${site.type}/${site.id}" target="_blank">View on OSM</a>
+                    <a href="https://www.openstreetmap.org/${site.type}/${site.id}" target="_blank">View on OSM</a><br>
                     <button id="selectNodeBtn-${site.id}" style="margin-top: 5px;">Select this site</button>
                 `;
 
@@ -71,6 +73,9 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
                         document.getElementById('selectedSiteName').textContent = `Site Name: ${selectedSiteName}`;
                         document.getElementById('selectedCountry').textContent = `Country: ${selectedCountry}`;
 
+                        // Clear old Wikipedia summary (so it doesn't keep appending)
+                        document.getElementById('selectedInfo').innerHTML = '';
+
                         // Fetch the Wikipedia summary for the selected site
                         fetchWikipediaSummary(selectedSiteName, selectedCountry);
                     });
@@ -78,7 +83,7 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
             }
         });
 
-        // Zoom to first result (unchanged)
+        // Zoom to the first result (unchanged)
         const firstResult = data.find(site => site.lat && site.lon);
         if (firstResult) {
             map.setView([firstResult.lat, firstResult.lon], 10);
@@ -92,31 +97,55 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
 // Fetch Wikipedia summary for the selected site
 async function fetchWikipediaSummary(siteName, country) {
     // Create a Wikipedia page title based on the selected site name and country
-    const title = `${siteName} (${country})`;  // Example: "Kështjella në Rrasen e Koshares (Albania)"
+    const title = `${siteName} (${country})`;  // e.g., "Kështjella e Rrasës (Albania)"
+
+    // Show a quick "Loading..." message
+    document.getElementById('selectedInfo').innerHTML = `<h3>Loading Wikipedia summary...</h3>`;
 
     try {
-        // Make a request to the Wikipedia API to get the summary
-        const response = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`);
-        const data = await response.json();
+        // First attempt: "SiteName (Country)"
+        const data = await fetchWikiData(title);
 
         if (data && data.extract) {
             // Display the summary in the selected info panel
-            document.getElementById('selectedInfo').innerHTML += `
+            document.getElementById('selectedInfo').innerHTML = `
                 <h3>Wikipedia Summary</h3>
                 <p>${data.extract}</p>
                 <a href="${data.content_urls ? data.content_urls.desktop.page : '#'}" target="_blank">Read more on Wikipedia</a>
             `;
         } else {
-            document.getElementById('selectedInfo').innerHTML += `
-                <h3>Wikipedia Summary</h3>
-                <p>No Wikipedia summary available for this site.</p>
-            `;
+            // Optional: Fallback to "SiteName" only if the first attempt fails
+            const fallbackData = await fetchWikiData(siteName);
+            if (fallbackData && fallbackData.extract) {
+                document.getElementById('selectedInfo').innerHTML = `
+                    <h3>Wikipedia Summary (Fallback)</h3>
+                    <p>${fallbackData.extract}</p>
+                    <a href="${fallbackData.content_urls ? fallbackData.content_urls.desktop.page : '#'}" target="_blank">Read more on Wikipedia</a>
+                `;
+            } else {
+                document.getElementById('selectedInfo').innerHTML = `
+                    <h3>Wikipedia Summary</h3>
+                    <p>No Wikipedia summary available for this site.</p>
+                `;
+            }
         }
     } catch (error) {
         console.error('Error fetching Wikipedia summary:', error);
-        document.getElementById('selectedInfo').innerHTML += `
+        document.getElementById('selectedInfo').innerHTML = `
             <h3>Wikipedia Summary</h3>
             <p>Failed to fetch Wikipedia summary. Please try again later.</p>
         `;
     }
+}
+
+/**
+ * Helper function to fetch data from Wikipedia's REST API
+ */
+async function fetchWikiData(title) {
+    const response = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`);
+    if (!response.ok) {
+        // Return null or a minimal structure
+        return null;
+    }
+    return await response.json();
 }
