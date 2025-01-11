@@ -1,4 +1,4 @@
-const countryCoordinates = {
+window.countryCoordinates = {
     "Afghanistan": "29.3, 60.9, 38.5, 77.1",
     "Albania": "39.6, 19.3, 42.6, 21.1",
     "Algeria": "19.0, -8.0, 37.1, 11.0",
