@@ -1,72 +1,70 @@
-// Map setup
-const map = L.map('map').setView([51.505, -0.09], 13);
+// map.js
+
+// Initialize map
+const map = L.map('map').setView([20, 0], 2);  // Default to global view
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
-    attribution: '© OpenStreetMap contributors'
 }).addTo(map);
 
-let markersLayer = L.layerGroup().addTo(map); // Layer to hold markers
+// Populate country dropdown from data.js (loaded from 'data.js' script)
+const countryDropdown = document.getElementById('country');
+Object.keys(countryCoordinates).forEach(country => {
+    const option = document.createElement('option');
+    option.value = country;
+    option.textContent = country;
+    countryDropdown.appendChild(option);
+});
 
-// Populate the country dropdown
-fetch('/api/countries')
-    .then(response => response.json())
-    .then(countries => {
-        const countrySelect = document.getElementById('country');
-        countries.forEach(country => {
-            const option = document.createElement('option');
-            option.value = country;
-            option.textContent = country;
-            countrySelect.appendChild(option);
-        });
-    })
-    .catch(error => console.error('Error fetching countries:', error));
-
-// Fetch and display historic sites based on user selection
-document.getElementById('searchBtn').addEventListener('click', () => {
-    const country = document.getElementById('country').value;
+// Event listener for search button
+document.getElementById('searchBtn').addEventListener('click', async () => {
+    const country = countryDropdown.value;
     const historicType = document.getElementById('historicType').value;
 
     if (!country || !historicType) {
-        alert('Please select both a country and a historic type.');
+        alert('Please select both country and historic type.');
         return;
     }
 
-    fetch(`/api/historic-sites?country=${country}&historicType=${historicType}`)
-        .then(response => response.json())
-        .then(data => {
-            markersLayer.clearLayers(); // Clear previous markers
-            data.forEach(site => {
-                const marker = L.marker([site.lat, site.lon])
-                    .addTo(markersLayer)
-                    .bindPopup(`<strong>${site.name}</strong><br>Type: ${site.historicType}`)
-                    .on('click', () => {
-                        displayNodeDetails(site.id, site.name, site.historicType);
-                    });
-            });
-        })
-        .catch(error => console.error('Error fetching historic sites:', error));
-});
+    try {
+        // Fetch data from the backend API
+        const response = await fetch(http://localhost:5000/api/historic-sites?country=${encodeURIComponent(country)}&historicType=${encodeURIComponent(historicType)});
+        if (!response.ok) {
+            throw new Error(Error: ${response.statusText});
+        }
 
-// Display node details and fetch Wikipedia summary
-function displayNodeDetails(nodeId, nodeName, historicType) {
-    const detailsElement = document.getElementById('nodeDetails');
-    detailsElement.innerHTML = `
-        <strong>Name:</strong> ${nodeName}<br>
-        <strong>Type:</strong> ${historicType}<br>
-        <em>Loading Wikipedia summary...</em>
-    `;
+        const data = await response.json();
+        if (data.length === 0) {
+            alert(No results found for ${historicType} in ${country}.);
+            return;
+        }
 
-    fetch(`/wiki-summary?name=${encodeURIComponent(nodeName)}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.summary) {
-                detailsElement.innerHTML += `<p><strong>Summary:</strong> ${data.summary}</p>`;
-            } else {
-                detailsElement.innerHTML += `<p><em>No summary available on Wikipedia.</em></p>`;
+        // Clear existing markers from map
+        map.eachLayer(layer => {
+            if (layer instanceof L.Marker) {
+                map.removeLayer(layer);
             }
-        })
-        .catch(error => {
-            console.error('Error fetching Wikipedia summary:', error);
-            detailsElement.innerHTML += `<p><em>Error fetching Wikipedia summary.</em></p>`;
         });
-}
+
+        // Add markers for each result
+        data.forEach(site => {
+            if (site.lat && site.lon) {
+                const popupContent = 
+                    <strong>${site.name || 'Unnamed'}</strong><br>
+                    English Name: ${site.name_en || 'N/A'}<br>
+                    Type: ${site.historicType}<br>
+                    <a href="https://www.openstreetmap.org/${site.type}/${site.id}" target="_blank">View on OSM</a>
+                ;
+                L.marker([site.lat, site.lon]).addTo(map).bindPopup(popupContent);
+            }
+        });
+
+        // Zoom to first result
+        const firstResult = data.find(site => site.lat && site.lon);
+        if (firstResult) {
+            map.setView([firstResult.lat, firstResult.lon], 10);
+        }
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        alert('Failed to fetch historic sites. Please try again later.');
+    }
+});
