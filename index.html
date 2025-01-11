@@ -151,25 +151,25 @@
     <script src="data.js"></script>
     <script src="map.js"></script>
 
-    <script>
-    // Function to fetch the Wikipedia summary for the selected site
+    <script src="data.js"></script>
+<script src="map.js"></script>
+<script>
     async function fetchWikipediaSummary(siteName) {
         try {
             const response = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(siteName)}`);
             if (!response.ok) {
-                throw new Error(`Failed to fetch summary for "${siteName}"`);
+                throw new Error(`Failed to fetch summary for ${siteName}`);
             }
             const data = await response.json();
-            const infoContainer = document.getElementById('selectedInfo');
-
             if (data.type === "standard") {
+                const infoContainer = document.getElementById('selectedInfo');
                 infoContainer.innerHTML = `
                     <h2>${data.title}</h2>
                     <p>${data.extract}</p>
                     <a href="${data.content_urls.desktop.page}" target="_blank">Read more on Wikipedia</a>
                 `;
             } else {
-                throw new Error(`No summary found for "${siteName}"`);
+                throw new Error(`No summary found for ${siteName}`);
             }
         } catch (error) {
             const infoContainer = document.getElementById('selectedInfo');
@@ -181,42 +181,13 @@
         }
     }
 
-    // Add an event listener for map clicks to update the selected site info
-    function setupMapClickListener(map) {
-        map.on('click', (e) => {
-            // Replace with how your map returns site data on click
-            const clickedSite = getSiteDetailsFromMap(e.latlng); // Custom function to extract site details
-            if (clickedSite && clickedSite.name) {
-                // Update the site name and country in the info panel
-                document.getElementById('selectedSiteName').textContent = `Site Name: ${clickedSite.name}`;
-                document.getElementById('selectedCountry').textContent = `Country: ${clickedSite.country || 'N/A'}`;
-
-                // Fetch Wikipedia summary for the clicked site
-                fetchWikipediaSummary(clickedSite.name);
-            }
-        });
-    }
-
-    // Function to get site details from map (mock function, replace with actual logic)
-    function getSiteDetailsFromMap(latlng) {
-        // Example site data; replace with your actual data retrieval logic
-        return {
-            name: "Great Wall of China", // This should come from your map logic
-            country: "China",
-        };
-    }
-
-    // Simulate initializing the map and setting up the click listener
-    document.addEventListener('DOMContentLoaded', () => {
-        const map = L.map('map').setView([51.505, -0.09], 13); // Example map initialization
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-        }).addTo(map);
-
-        // Call the function to set up the map click listener
-        setupMapClickListener(map);
+    document.getElementById('searchBtn').addEventListener('click', () => {
+        const selectedSiteName = document.getElementById('country').value || "Example Site";
+        document.getElementById('selectedSiteName').textContent = `Site Name: ${selectedSiteName}`;
+        document.getElementById('selectedCountry').textContent = `Country: Selected Country`;
+        fetchWikipediaSummary(selectedSiteName);
     });
-    </script>
+</script>
 
 </body>
 </html>
