@@ -4,29 +4,28 @@ const fetch = globalThis.fetch || require('node-fetch');
 const { countryCoordinates } = require('./data');
 const { logInfo, logError } = require('./logger');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const overpassUrl = "https://overpass-api.de/api/interpreter";
 
-// Middleware setup
+// Enable CORS for both local development and the public domain (you can also adjust this for other environments as needed)
 app.use(cors({ origin: ['http://localhost:5000', 'http://localhost:8080', 'https://historicalsights.fly.dev'] }));
+
+// Serve static files from 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.json()); // For parsing JSON in requests
 
-// Variable to store selected node details
-let selectedNodeDetails = null;
-
-// Serve data.js explicitly
+// Serve data.js explicitly (this is used to ensure it's accessible on the front-end)
 app.get('/data.js', (req, res) => {
     res.sendFile(path.join(__dirname, 'data.js'));
 });
 
-// Root route
+// Root route (for API documentation or status check)
 app.get('/', (req, res) => {
     res.send('Welcome to the Historic Sites API. Please use the appropriate endpoints.');
 });
 
-// Fetch Overpass data
+// Fetch Overpass data with retry logic
 async function fetchOverpassData(query, retries = 5, delay = 1000) {
     try {
         const response = await fetch(overpassUrl, {
@@ -47,13 +46,16 @@ async function fetchOverpassData(query, retries = 5, delay = 1000) {
     }
 }
 
-// API endpoints
+// Endpoint to get list of countries
 app.get('/api/countries', (req, res) => {
+    logInfo('Fetching country list.');
     res.json(Object.keys(countryCoordinates));
 });
 
+// Endpoint to fetch historic sites
 app.get('/api/historic-sites', async (req, res) => {
     const { country, historicType, q: searchTerm } = req.query;
+
     if (!country || !historicType) {
         return res.status(400).json({ error: 'Both country and historicType are required.' });
     }
@@ -62,7 +64,9 @@ app.get('/api/historic-sites', async (req, res) => {
     }
 
     try {
+        logInfo(`Fetching historic sites for country: ${country}, type: ${historicType}, term: ${searchTerm || 'N/A'}`);
         const boundingBox = countryCoordinates[country];
+
         let query = `[out:json][timeout:20];node["historic"="${historicType}"](${boundingBox});out body;`;
         if (searchTerm) {
             query = `[out:json][timeout:20];node["historic"="${historicType}"]["name"~"${searchTerm}",i](${boundingBox});out body;`;
@@ -78,36 +82,55 @@ app.get('/api/historic-sites', async (req, res) => {
             name_en: e.tags['name:en'] || 'Unnamed (English)',
             historicType: e.tags.historic,
         }));
+
+        logInfo(`Found ${results.length} results.`);
         res.json(results);
     } catch (error) {
+        logError(`Error fetching historic sites: ${error.message}`);
         res.status(500).json({ error: 'Error fetching data', details: error.message });
     }
 });
 
-// Store selected node details
-app.post('/api/selected-node', (req, res) => {
-    const { name, country } = req.body;
-    if (!name || !country) {
-        return res.status(400).json({ error: 'Both name and country are required.' });
+// Endpoint to save selected node to file
+app.get('/save-node', (req, res) => {
+    const nodeId = req.query.nodeId;
+
+    if (!nodeId) {
+        return res.status(400).send('Error: nodeId is required');
     }
 
-    selectedNodeDetails = { name, country };
-    logInfo(`Selected node updated: ${JSON.stringify(selectedNodeDetails)}`);
-    res.json({ message: 'Selected node details updated', selectedNodeDetails });
+    const data = { selectedNode: nodeId };
+
+    fs.writeFile('selectedNode.json', JSON.stringify(data, null, 2), (err) => {
+        if (err) {
+            console.error('Error saving node:', err);
+            return res.status(500).send('Failed to save the node');
+        }
+        res.send(`Node ${nodeId} saved successfully`);
+    });
 });
 
-// Retrieve selected node details
-app.get('/api/selected-node', (req, res) => {
-    res.json({ selectedNodeDetails });
+// Optional: Endpoint to read selected node from file
+app.get('/get-node', (req, res) => {
+    fs.readFile('selectedNode.json', 'utf-8', (err, data) => {
+        if (err) {
+            console.error('Error reading node:', err);
+            return res.status(500).send('Failed to read the node');
+        }
+        const parsedData = JSON.parse(data || '{}');
+        res.json(parsedData);
+    });
 });
 
-// Serve fallback SPA
+// Fallback for undefined routes (e.g., to serve SPA index.html)
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Start server
-const PORT = process.env.PORT || 5000;
+// Start server on a specified port
+const PORT = process.env.PORT || 5000;  // Default to 5000 for local testing
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://0.0.0.0:${PORT}/`);
+    logInfo(`Server listening on ${PORT}`);
 });
+
