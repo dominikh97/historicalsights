@@ -71,6 +71,9 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
                         document.getElementById('selectedSiteName').textContent = `Site Name: ${selectedSiteName}`;
                         document.getElementById('selectedCountry').textContent = `Country: ${selectedCountry}`;
 
+                        // Clear any previous Wikipedia summary from the panel
+                        document.getElementById('selectedInfo').innerHTML = '';
+
                         // Fetch the Wikipedia summary for the selected site
                         fetchWikipediaSummary(selectedSiteName, selectedCountry);
                     });
@@ -100,21 +103,21 @@ async function fetchWikipediaSummary(siteName, country) {
         const data = await response.json();
 
         if (data && data.extract) {
-            // Display the summary in the selected info panel
-            document.getElementById('selectedInfo').innerHTML += `
+            // Display the summary in the "Selected Site" panel
+            document.getElementById('selectedInfo').innerHTML = `
                 <h3>Wikipedia Summary</h3>
                 <p>${data.extract}</p>
                 <a href="${data.content_urls ? data.content_urls.desktop.page : '#'}" target="_blank">Read more on Wikipedia</a>
             `;
         } else {
-            document.getElementById('selectedInfo').innerHTML += `
+            document.getElementById('selectedInfo').innerHTML = `
                 <h3>Wikipedia Summary</h3>
                 <p>No Wikipedia summary available for this site.</p>
             `;
         }
     } catch (error) {
         console.error('Error fetching Wikipedia summary:', error);
-        document.getElementById('selectedInfo').innerHTML += `
+        document.getElementById('selectedInfo').innerHTML = `
             <h3>Wikipedia Summary</h3>
             <p>Failed to fetch Wikipedia summary. Please try again later.</p>
         `;
