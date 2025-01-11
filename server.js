@@ -95,6 +95,31 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Add this constant to store the selected node
+let selectedNode = null;
+
+// New endpoint to update the selected node
+app.post('/api/selected-node', express.json(), (req, res) => {
+    const { country, name } = req.body;
+
+    if (!country || !name) {
+        return res.status(400).json({ error: 'Both country and name are required.' });
+    }
+
+    selectedNode = { country, name };
+    logInfo(`Selected node updated: ${JSON.stringify(selectedNode)}`);
+    res.json({ success: true, selectedNode });
+});
+
+// Endpoint to retrieve the selected node (optional)
+app.get('/api/selected-node', (req, res) => {
+    if (!selectedNode) {
+        return res.status(404).json({ error: 'No node selected yet.' });
+    }
+
+    res.json(selectedNode);
+});
+
 // Start server on a specified port
 const PORT = process.env.PORT || 5000;  // Default to 5000 for local testing
 app.listen(PORT, '0.0.0.0', () => {
