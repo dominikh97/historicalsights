@@ -11,7 +11,7 @@
   <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
 
   <style>
-    /* Your styles here (unchanged) */
+    /* (Unchanged) Your existing styles here */
     body {
       font-family: Arial, sans-serif;
       margin: 0;
@@ -82,10 +82,10 @@
     #selectedInfo h3 {
       margin-top: 0;
     }
-    /* .wiki-summary or other classes can be styled here if needed */
   </style>
 </head>
 <body>
+
   <header>
     <h1>Historic Sites Search</h1>
     <p>Search for historic sites by country and historic type on the map.</p>
@@ -128,7 +128,7 @@
       <div id="selectedInfo">
         <h3 id="selectedSiteName">Site Name:</h3>
         <h4 id="selectedCountry">Country:</h4>
-        <!-- Wikipedia summary gets appended here by map.js -->
+        <!-- Summaries get appended here by map.js -->
       </div>
     </div>
 
@@ -136,7 +136,35 @@
     <div id="map"></div>
   </div>
 
-  <!-- Load the combined map.js (which also contains countryCoordinates) -->
+  <!-- 1) Define your countryCoordinates object and attach it to window -->
+  <script>
+    window.countryCoordinates = {
+      "Afghanistan": "29.3, 60.9, 38.5, 77.1",
+      "Albania": "39.6, 19.3, 42.6, 21.1",
+      "Algeria": "19.0, -8.0, 37.1, 11.0",
+      "Andorra": "42.4, 1.4, 42.7, 1.8",
+      "Angola": "-18.0, 11.0, -4.0, 24.0",
+      /* ... rest of your countries ... */
+      "United States": "24.5, -125.0, 49.5, -66.9",
+      "Zimbabwe": "-17.9, 25.0, -15.0, 32.0"
+    };
+
+    // 2) Populate the <select id="country"> with these countries
+    document.addEventListener('DOMContentLoaded', () => {
+      const countryDropdown = document.getElementById('country');
+      if (!countryDropdown || !window.countryCoordinates) return;
+      const countries = Object.keys(window.countryCoordinates);
+      countries.forEach(country => {
+        const option = document.createElement('option');
+        option.value = country;
+        option.textContent = country;
+        countryDropdown.appendChild(option);
+      });
+    });
+  </script>
+
+  <!-- 3) Load map.js AFTER the country list is populated -->
   <script src="map.js"></script>
+
 </body>
 </html>
