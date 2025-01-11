@@ -1,82 +1,40 @@
-// Initialize map
-const map = L.map('map').setView([20, 0], 2);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+// Initialize the map
+const map = L.map('map').setView([51.505, -0.09], 13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+}).addTo(map);
 
-// Populate country dropdown
-const countryDropdown = document.getElementById('country');
-Object.keys(countryCoordinates).forEach(country => {
-    const option = document.createElement('option');
-    option.value = country;
-    option.textContent = country;
-    countryDropdown.appendChild(option);
-});
+// Function to handle node selection
+function onNodeSelected(node) {
+    const nodeName = node.name || "Unknown";
 
-// Search button event listener
-document.getElementById('searchBtn').addEventListener('click', async () => {
-    const country = countryDropdown.value;
-    const historicType = document.getElementById('historicType').value;
+    // Update node details in the right panel
+    document.getElementById("nodeDetails").innerText = `Selected Node: ${nodeName}`;
 
-    if (!country || !historicType) {
-        alert('Please select both country and historic type.');
-        return;
-    }
-
-    try {
-        const response = await fetch(`http://localhost:5000/api/historic-sites?country=${encodeURIComponent(country)}&historicType=${encodeURIComponent(historicType)}`);
-        const data = await response.json();
-
-        if (data.length === 0) {
-            alert(`No results found for ${historicType} in ${country}.`);
-            return;
-        }
-
-        // Clear existing markers
-        map.eachLayer(layer => {
-            if (layer instanceof L.Marker) map.removeLayer(layer);
+    // Fetch Wikipedia description for the selected node
+    fetch(`http://localhost:8000/fetch-description?nodeName=${encodeURIComponent(nodeName)}`)
+        .then(response => response.json())
+        .then(data => {
+            const description = data.description || "No description available.";
+            document.getElementById("wikiDescription").innerText = description;
+        })
+        .catch(error => {
+            console.error('Error fetching Wikipedia description:', error);
+            document.getElementById("wikiDescription").innerText = "Failed to fetch description.";
         });
+}
 
-        // Add markers and attach click events
-        data.forEach(site => {
-            if (site.lat && site.lon) {
-                const popupContent = `
-                    <strong>${site.name || 'Unnamed'}</strong><br>
-                    Type: ${site.historicType}<br>
-                    <a href="https://www.openstreetmap.org/${site.type}/${site.id}" target="_blank">View on OSM</a>
-                `;
-                const marker = L.marker([site.lat, site.lon]).addTo(map).bindPopup(popupContent);
+// Example of adding a marker and attaching the click event
+function addNodeMarker(node) {
+    const marker = L.marker([node.lat, node.lon]).addTo(map);
+    marker.on('click', () => onNodeSelected(node));
+}
 
-                marker.on('click', async () => {
-                    const selectedNodeDetails = {
-                        name: site.name || 'Unnamed',
-                        country,
-                    };
+// Example nodes (replace with actual data from your backend or API)
+const exampleNodes = [
+    { id: 1, name: "Tower of London", lat: 51.5081, lon: -0.0759 },
+    { id: 2, name: "Stonehenge", lat: 51.1789, lon: -1.8262 },
+];
 
-                    // Update right panel
-                    document.getElementById('nodeDetails').innerHTML = `
-                        <strong>Selected Node:</strong><br>
-                        Name: ${selectedNodeDetails.name}<br>
-                        Country: ${selectedNodeDetails.country}
-                    `;
-
-                    // Send to backend
-                    try {
-                        await fetch('http://localhost:5000/api/selected-node', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(selectedNodeDetails),
-                        });
-                    } catch (error) {
-                        console.error('Error sending selected node details:', error);
-                    }
-                });
-            }
-        });
-
-        // Zoom to the first result
-        const firstResult = data.find(site => site.lat && site.lon);
-        if (firstResult) map.setView([firstResult.lat, firstResult.lon], 10);
-    } catch (error) {
-        console.error('Error fetching data:', error);
-        alert('Failed to fetch historic sites.');
-    }
-});
+// Add example nodes to the map
+exampleNodes.forEach(addNodeMarker);
