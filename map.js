@@ -4,6 +4,10 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
 }).addTo(map);
 
+// Store selected node country and name locally (client-side state)
+let selectedCountry = null;
+let selectedSiteName = null;
+
 // Populate country dropdown from data.js (loaded from 'data.js' script)
 const countryDropdown = document.getElementById('country');
 Object.keys(countryCoordinates).forEach(country => {
@@ -58,24 +62,16 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
 
                 // Add event listener for the "Select this site" button
                 marker.on('popupopen', () => {
-                    document.getElementById(`selectNodeBtn-${site.id}`).addEventListener('click', async () => {
-                        try {
-                            const response = await fetch('http://localhost:5000/api/selected-node', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ country, name: site.name || 'Unnamed' }),
-                            });
+                    document.getElementById(`selectNodeBtn-${site.id}`).addEventListener('click', () => {
+                        // Store the selected country and site name in local variables
+                        selectedCountry = country;  // Store country from dropdown
+                        selectedSiteName = site.name || 'Unnamed';  // Store name of the selected site
 
-                            if (!response.ok) {
-                                throw new Error(`Error: ${response.statusText}`);
-                            }
+                        // Optional: You can log them for debugging
+                        console.log(`Selected site: ${selectedSiteName} in ${selectedCountry}`);
 
-                            const result = await response.json();
-                            alert(`Selected site: ${result.selectedNode.name} in ${result.selectedNode.country}`);
-                        } catch (error) {
-                            console.error('Error selecting node:', error);
-                            alert('Failed to select this site. Please try again later.');
-                        }
+                        // Display a confirmation message to the user
+                        alert(`You selected: ${selectedSiteName} in ${selectedCountry}`);
                     });
                 });
             }
