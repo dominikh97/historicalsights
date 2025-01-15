@@ -1,18 +1,3 @@
-///NEW STARTS HERE///
-npm install @octokit/rest
-
-GITHUB_TOKEN=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
-GITHUB_REPO_OWNER=dominikh97
-GITHUB_REPO_NAME=historicalsights
-
-const { Octokit } = require("@octokit/rest");
-const fs = require("fs").promises;
-
-// Configure Octokit
-const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
-
-/// NEW ENDS HERE///
-
 const express = require('express');
 const cors = require('cors');
 const fetch = globalThis.fetch || require('node-fetch');
@@ -127,38 +112,6 @@ app.get('/api/historic-sites', async (req, res) => {
 
         logInfo(`Found ${results.length} results.`);
         res.json(results);
-    } 
-/// NEW STARTING HERE ///
-            // Create GeoJSON for results
-        const geoJSON = {
-            type: "FeatureCollection",
-            features: results.map(site => ({
-                type: "Feature",
-                geometry: {
-                    type: "Point",
-                    coordinates: [site.lon, site.lat],
-                },
-                properties: {
-                    id: site.id,
-                    name: site.name,
-                    name_en: site.name_en,
-                    historicType: site.historicType,
-                },
-            })),
-        };
-
-        // Convert GeoJSON to string
-        const geoJSONString = JSON.stringify(geoJSON, null, 2);
-
-        // Upload GeoJSON to GitHub
-        const filePath = `geojson/${country}_${historicType}_${searchTerm || 'all'}.geojson`;
-        const commitMessage = `Add GeoJSON for ${historicType} in ${country} with search term '${searchTerm}'`;
-
-        await uploadToGitHub(geoJSONString, filePath, commitMessage);
-
-        logInfo(`GeoJSON file uploaded to GitHub at ${filePath}.`);
-        res.json(results);
-/// NEW ENDING HERE ///
     } catch (error) {
         logError(`Error fetching historic sites: ${error.message}`);
         res.status(500).json({ error: 'Error fetching data', details: error.message });
