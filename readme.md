@@ -21,7 +21,8 @@ The website features:
 - Start the server in CMD: node server.js
 - An information message should appear upon success.
 
-Create an account at https://www.postman.com/
+Create an account at https://www.postman.com/.
+
 Set up a GET request with the following hyperlink:
 http://localhost:5000/api/historic-sites?country=Cambodia&historicType=ruins
 
